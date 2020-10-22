@@ -8,6 +8,9 @@
 #include <vector>
 #include <algorithm>
 #include <string.h>
+#include <cstdio>
+#include "exprtk.hpp"
+
 //#include <muParser.h>
 using namespace std;
 
