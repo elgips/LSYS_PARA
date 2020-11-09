@@ -1,22 +1,26 @@
 /*
- * MyClass.h
+ * LSYS_PARA.h
  *
  *  Created on: Oct 13, 2020
- *      Author: gips
+ *      Author: Ela'd Gips
  */
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <string.h>
 #include <cstdio>
-#include "exprtk.hpp"
+//#include "exprtk.hpp"
 
-//#include <muParser.h>
 using namespace std;
 
 #ifndef LSYS_PARA_H_
 #define LSYS_PARA_H_
 
+//typedef exprtk::symbol_table<double> symbol_table_d;
+//typedef exprtk::expression<double>     expression_d;
+//typedef exprtk::parser<double>             parser_d;
+
+size_t findNth(string s1,string s2,unsigned int i);
 class variable{
 public:
 	string name;
@@ -33,39 +37,35 @@ public:
 
 };
 
-//class expression{
-//protected:
+class expression{
+protected:
+
+	vector	<variable>	variables;
+	string				equation;
+//	symbol_table_d SymTab;
+//	expression_d expression_e;
+
 //
-//	vector	<variable>	variables;
-//	string				Template;
-//	mu	::	Parser 		p;
+public:
+//	parser_d 						parser_e;
+//						expression(expression e);
+						expression	();
+						expression 	(string s);
+						expression	(vector <variable> Variables,string tmplt);
+						expression(vector <string> Names,vector <double> values,string tmplt);
+//	void				ParseTemplate();
+	void 				SetVariables(vector <variable> Variables);
+	void 				SetVariables(vector <string> Names,vector <double> values);
+//	void 				ParseVariables();
+//	bool 				boolevalVal();
+//	double				evalVal();
+//	bool	CheckVariablesFormat(vector <variable> Variables);
 //
-//public:
-//			expression	();
-//			expression	(string tmplt);
-//			expression	(vector <variable> Variables,string tmplt);
-//
-//	void 	SetVariables(vector <variable> Variables);
-//	void 	ParseVariables();
 //	void 	SetTemplet	(string tmplt);
 
-//};
-//
-//class term:expression{
-//public:
-//
-//	bool evalVal();
-//
-//};
-//
-//class sucVar:expression{
-//
-//public:
-//
-//	double evalVal();
-//
-//};
-//
+};
+typedef expression	term;
+
 class paraString{
 protected:
 	string				Input;
@@ -80,67 +80,82 @@ public:
 	paraString();
 	paraString(string tmplt);
 //	paraString(string tmplt,vector <variable> Variables);
-
+	int					numOfAtomParaString();// done, CHECKED
 	string 				GetTemplate		();
 	string				GetNumOfVars	();
 	string				GetNamesClean	();
 	vector	<variable>	GetVariables	();
-
-	void	SetTemplate	(string	tmplt);
-	void	SetVariables(vector <variable> Variables);
-
+	vector 	<variable> 	GetVariablesWithValues(paraString pSymb,paraString pNum);//done, checked
+	paraString			SubParaString(int t_i,int t_e);//D&C
+	void				SetTemplate	(string	tmplt);
+	void				SetVariables(vector <variable> Variables);
+	bool				Parafit(paraString pS);//done, checked
 
 };
-//class predecessor:paraString{
-//protected:
-//
-//	vector	<term>	terms;
-//
-//public:
-//
-//	predecessor();
-//	predecessor(string tmplt,vector	<term>	Terms);
-//	predecessor(string tmplt,vector	<term>	Terms,vector <variable> Variables);
-//};
-//class successor:paraString{
-//protected:
-//
-//	vector	<sucVar> sucVars;
-//
-//public:
-//
-//	successor();
-//	successor(string tmplt,vector	<sucVar> SucVars);
-//	successor(string tmplt,vector	<sucVar> SucVars,vector <variable> Variables);
-//
-//};
-////typedef paraString predecessor;/*a Parastring - a substring at the previous step*/
-////typedef paraString successor;/*the evolution of that sub string in the current step*/
-//typedef predecessor sideConLeft;/*a string which is a left side condition for a certain evolution*/
-//typedef predecessor sideConRight;/*a string which is a right side condition for a certain evolution*/
-//class word{
-//public:
-//	string stWord;
-//	predecessor p;
-//	successor s;
-//	sideConLeft l;
-//	sideConRight r;
-//	word();
-//	word(string StWord);
+class successor{/*the evolution of that sub string in the current step*/
+protected:
+	string					Input;
+	string 					Template;
+	string					numOfExp;
+	string					namesClean;
+	vector	<expression> 	expressions;
+public:
+	successor();
+	successor(string tmplt);
+//	successor(string tmplt,vector	<expression> SucVars);
+//	successor(string tmplt,vector	<expression> SucVars,vector <variable> Variables);
+
+};
+typedef paraString predecessor;/*a Parastring - a substring at the previous step*/
+typedef predecessor sideConLeft;/*a string which is a left side condition for a certain evolution*/
+typedef predecessor sideConRight;/*a string which is a right side condition for a certain evolution*/
+class word{
+public:
+	string stWord;
+	/*SCL<pred>SCR:@(var1,var2...)term1#@(var1,var2...)term2....#@(var1,var2...)termN->Successor:@(var1,var2...)sucVar1#@(var1,var2...)sucVar2#...#@(var1,var2...)sucVarM;*/
+	predecessor				p;
+	successor				s;
+	sideConLeft				l;
+	sideConRight			r;
+	vector	<expression>	t;
+	word();
+	word(string StWord);
 //	word(sideConLeft L,successor S,predecessor P,sideConRight R);
-//};
-//class LSYS{
-//public:
-//	string axiom;
-//	string ignore;
-//	vector<word> words;
-//	vector<string> history;
-//	int timestep;
-//	LSYS(string s);
-//	//	~LSYS();
-//	string ignoreIt(string s);
-//	bool leftCon(string oldword,size_t t,sideConLeft left);
-//	bool rightCon(string oldword,size_t t,sideConRight right);
-//	int propagate();
-//};
-#endif /* LSYSCON2S_H_ */
+////
+	void ParseTerms(string S);
+};
+class LSYS{
+public:
+	/*WORDS:
+	 * word1;
+	 * word2;
+	 * .
+	 * .
+	 * .
+	 * word_n;
+	 *
+	 * AXIOM:
+	 * axiom..;
+	 *
+	 * {not obligatory}
+	 * CONSTANTS:
+	 * C1=..;
+	 * C2=...;
+	 * C3=...;
+	 * dt=...;*/
+	string 				axiom;
+	string 				current;
+	paraString			p;
+	string 				ignore;
+	vector	<word> 		words;
+	vector	<string>	history;
+	vector	<variable>	constants;
+	LSYS(string s);
+////	//	~LSYS();
+	string ignoreIt(string s);
+////	bool leftCon(string oldword,size_t t,sideConLeft left);
+////	bool rightCon(string oldword,size_t t,sideConRight right);
+	int propagate();
+	string GetNewWord(size_t* t_i);
+};
+#endif /* LSYS_PARA_H_ */
