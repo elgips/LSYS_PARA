@@ -48,7 +48,7 @@ int main(){
 //	word w3("D<A>C:@w w==8->B");
 //	successor s("A[@{x} x+2+x^2,@{y} 3*y]E[@j sin(j)]");
 	LSYS L("AXIOM: P[0.01,0.002]J[0.01,0.002,0.004]A[0.5]B[0.2]C endAXIOM;"
-			"WORDS: J[a,b,c]<A[d]B[e]>C:@{a,c}a+c>2#@{b}b^2<5->B;"
+			"WORDS: J[a,b,c]<A[d]B[e]>C:@{a,c}a+c>0.001#@{b}b^2<5->B[@{a} sqrt(a+1)]J[@{b}b^2#@{c}cos(c^2)#@{a}a^2];"
 //			"c[x,y]->g[@{x,y}x*y];"
 			"B->C;"
 			"C->A;"

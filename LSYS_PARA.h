@@ -56,7 +56,7 @@ public:
 	//	void				ParseTemplate();
 	void 				SetVariables(vector <variable> Variables);
 	void 				SetVariables(vector <string> Names,vector <double> values);
-	//	void 				ParseVariables();
+	string 				GetExpression();
 	//	bool 				boolevalVal();
 	//	double				evalVal();
 	//	bool	CheckVariablesFormat(vector <variable> Variables);
@@ -98,10 +98,15 @@ protected:
 	string 					Template;
 	string					numOfExp;
 	string					namesClean;
-	vector	<expression> 	expressions;
+	vector	<expression>	expressions;
 public:
 	successor();
 	successor(string tmplt);
+	vector <expression>		GetExpressions();
+	string					GetCleanNames();
+	string					GetExpNums();
+	string					GetTemplate();
+
 	//	successor(string tmplt,vector	<expression> SucVars);
 	//	successor(string tmplt,vector	<expression> SucVars,vector <variable> Variables);
 
@@ -162,5 +167,6 @@ public:
 	int propagate();
 	string GetNewWord(size_t* t_i);
 	string GetPnumfromPtempRev(string LTemplate,size_t t);
+	string ParsSuccessor(successor s);
 };
 #endif /* LSYS_PARA_H_ */

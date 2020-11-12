@@ -101,6 +101,9 @@ expression::expression(string s){
 	}
 
 }
+string expression::GetExpression(){
+	return this->equation;
+}
 /*End of expression definition*/
 
 /*paraString definition*/
@@ -303,6 +306,7 @@ successor::successor(string tmplt){
 	size_t t1=0,t2,t3;
 	if(Template.find("[")==Template.npos){
 		numOfExp="_0";
+		namesClean="_"+Template;
 	}else{
 		while(t1<Template.length()){
 			t2=SubTemp.find("[");
@@ -340,6 +344,22 @@ successor::successor(string tmplt){
 			if(t1<Template.length())SubTemp=Template.substr(t1);
 		}
 		if(numOfExp.empty())numOfExp="0";}
+}
+
+vector<expression> successor::GetExpressions(){
+	return this->expressions;
+}
+
+string successor::GetCleanNames(){
+	return namesClean;
+}
+
+string successor::GetExpNums(){
+	return numOfExp;
+}
+
+string	successor::GetTemplate(){
+	return Template;
 }
 /*End of successor:paraString definition*/
 
@@ -534,38 +554,67 @@ string LSYS::ignoreIt(string s){
 	return s;
 }
 string LSYS::GetPnumfromPtempRev(string LTemplate,size_t t){
-string Lnum="";
-size_t Temp_t=LTemplate.length(),t_num=t,t_sym=Temp_t;
-while((t_sym>0)&&(t_num>0)){
-	if(LTemplate[t_sym]==']'){
-		while(current[--t_num]!='[');
-//		t_num--;
-		while(LTemplate[--t_sym]!='[');
-//		t_sym--;
-	}else{
-		t_sym--;
-		t_num--;
+	string Lnum="";
+	size_t Temp_t=LTemplate.length(),t_num=t,t_sym=Temp_t;
+	while((t_sym>0)&&(t_num>0)){
+		if(LTemplate[t_sym]==']'){
+			while(current[--t_num]!='[');
+			//		t_num--;
+			while(LTemplate[--t_sym]!='[');
+			//		t_sym--;
+		}else{
+			t_sym--;
+			t_num--;
+		}
 	}
-}
-Lnum=current.substr(t_num, t-t_num);
-return Lnum;
+	Lnum=current.substr(t_num, t-t_num);
+	return Lnum;
 }
 
 
-//int LSYS::propagate(){
-//	/* CLEAN FROM IGNORE EXPRESSIONS*/
-//	string oldString=*(history.end()--),newString="";
-//	size_t sub_word_i=0;
+string LSYS::ParsSuccessor(successor s){
+	string SucNum="";
+	string SucSym=s.GetTemplate();
+	vector <expression> SucExp=s.GetExpressions();
+	unsigned int t;
+	vector <expression>::iterator e_it;
+	e_it=SucExp.begin();
+	for(t=0;t<SucSym.length();t++){
+		if(SucSym[t]=='['){
+			SucNum+="[";
+			while(SucSym[t++]!=']'){
+				if(SucSym[t]=='#'){
+					parser_e.compile(e_it->GetExpression(),expression_e);
+					SucNum+=to_string(expression_e.value())+",";
+					e_it++;
+				}
+				if(SucSym[t]==']'){
+					if(SucSym[t-1]!='['){
+						parser_e.compile(e_it->GetExpression(),expression_e);
+						SucNum+=to_string(expression_e.value())+"]";
+						e_it++;}
+				}
+			}
+		t--;}else{
+			SucNum+=SucSym[t];
+		}
+	}
+	return SucNum;
+}
+int LSYS::propagate(){
+	/* CLEAN FROM IGNORE EXPRESSIONS*/
+	string newString="";
+	size_t t_i=0;
 //	oldString=ignoreIt(oldString);
 //	paraString psOldString(oldString);
 //	string TempOldStr=oldString;
-//	while(i!=psOldString.GetNamesClean().npos){
-//		newString+=GetNewWord(psOldString,&sub_word_i);
-//	}
-//	history.push_back(newString);
-//	current=newString;
-//	return 0;
-//}
+	while(t_i<current.length()){
+		newString+=GetNewWord(&t_i);
+	}
+	history.push_back(newString);
+	current=newString;
+	return 0;
+}
 /*remarks - to enable partial word recognition (like only B from ABC[] , *t_i is a index in the
  * old sentance and not the number of word.
  * than I generate a parastring from the partial oldSentance and try to fit a word with all cons and terms */
@@ -576,16 +625,18 @@ string LSYS::GetNewWord(size_t* t_i){
 	paraString p1(subOldSentance);
 	string p1CleanNames=p1.GetNamesClean();
 	string p1VarNums=p1.GetNumOfVars();
+	string BestSuc;
 	word best;
 	string last;
 	string Leftnum;
 	unsigned int lastCount;
 	bool	newWordFoundFlag=false;//boolean variable for the question - do we have yet a proper non default nominee
 	bool	rightSideCon,leftSideCon,unitedTermsCon;// boolean variables for the Q's: does the right side condition meets? and same for left
-	vector	<word>::	iterator w_it;
-	vector	<term>::	iterator t_it;
-	vector	<variable> v_it;
-	size_t iVar,iNames,iTempName,iTempVar,t0,t2;
+	vector	<word>::		iterator	w_it;
+	vector	<term>::		iterator	t_it;
+	vector	<variable>::	iterator	v_it;
+	vector	<variable> 					vars;
+	size_t iVar,iNames,iTempName,iTempVar,t0,t2,t_best_temp;
 	/* for loop all the possible words fit (maximal predecessor,keeping all terms) -so we got a simple function -
 	 * gets the current maximal word length(parametric, no numbers), checking if the current predecessor fits the string head, after words calls for terms checking function, than
 	 * if word length is maximal, then parsing, and holding the new one as the best, untill scanning all words, across the oldSubString. returning the current location in the old string, and the new parsed word for the new string
@@ -602,7 +653,7 @@ string LSYS::GetNewWord(size_t* t_i){
 			last=tempTemplate.back();
 			lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
 			t0=findNth(subOldSentance, last, lastCount);
-//			paraString Ptemp=p1.SubParaString(0,(w_it->p).numOfAtomParaString());
+			//			paraString Ptemp=p1.SubParaString(0,(w_it->p).numOfAtomParaString());
 			iTempName=tempNamesClean.length();
 			iTempVar=tempVarNums.length();
 			// clean names length greater then the best fit so far length of clean names
@@ -632,8 +683,8 @@ string LSYS::GetNewWord(size_t* t_i){
 				leftSideCon=w_it->l.GetTemplate().empty();
 				if(!leftSideCon){
 					paraString pl(current.substr(0,*t_i));
-//					int atmNum=pl.numOfAtomParaString();
-//					paraString pSubl=pl.SubParaString(atmNum, atmNum);
+					//					int atmNum=pl.numOfAtomParaString();
+					//					paraString pSubl=pl.SubParaString(atmNum, atmNum);
 					leftCon=(w_it->l).GetNamesClean();
 					t2=pl.GetNamesClean().rfind(leftCon);
 					leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNamesClean().length());
@@ -646,9 +697,31 @@ string LSYS::GetNewWord(size_t* t_i){
 					paraString pSy(w_it->l.GetTemplate()+w_it->p.GetTemplate()+w_it->r.GetTemplate());
 					paraString pNum(Leftnum+current.substr(*t_i,*t_i+t0));
 					// set variables names and values
-					v_it=p1.GetVariablesWithValues(pSy , pNum);
+					vars=p1.GetVariablesWithValues(pSy , pNum);
 					// set in math parser
-					cout << Leftnum << endl;
+					unitedTermsCon=1;
+					SymTab.clear();
+					for(v_it=vars.begin();v_it!=vars.end();v_it++){
+						SymTab.add_variable(v_it->name,v_it->value);
+					}
+					SymTab.add_constants();
+					expression_e.register_symbol_table(SymTab);
+					// checking that all the terms are met
+					for(t_it=w_it->t.begin();t_it!=w_it->t.end();t_it++){
+						parser_e.compile(t_it->GetExpression(), expression_e);
+						unitedTermsCon=unitedTermsCon&&expression_e.value();
+					}
+					if(unitedTermsCon){
+						newWordFoundFlag=true;
+						choTempNamesClean=tempNamesClean;
+						choTempVarNums=tempVarNums;
+						BestSuc=ParsSuccessor(w_it->s);
+						t_best_temp=t0;
+						cout << BestSuc << endl;
+						cout << BestSuc << endl;
+					}
+
+					cout << unitedTermsCon << endl;
 				}
 				//TERMS
 				//SET VARIABLES VALUES
@@ -723,6 +796,14 @@ string LSYS::GetNewWord(size_t* t_i){
 	//	}
 	////	*PartialOldString=OldStringResidual;
 	//	return chosenParsedNewWord;
+	if(!newWordFoundFlag){
+		t_i++;
+		return subOldSentance.substr(0, 1);
+	}
+	else{
+		t_i+=t_best_temp;
+		return BestSuc;
+	}
 	return "-1";
 }
 /*making a complete and and value variables set from two variables set- 1) symbolic with no values, only param names,and one numeric with paramvalues but generic names
