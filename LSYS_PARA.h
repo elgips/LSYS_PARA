@@ -9,16 +9,16 @@
 #include <algorithm>
 #include <string.h>
 #include <cstdio>
-//#include "exprtk.hpp"
+#include "exprtk.hpp"
 
 using namespace std;
 
 #ifndef LSYS_PARA_H_
 #define LSYS_PARA_H_
 
-//typedef exprtk::symbol_table<double> symbol_table_d;
-//typedef exprtk::expression<double>     expression_d;
-//typedef exprtk::parser<double>             parser_d;
+typedef exprtk::symbol_table<double> symbol_table_d;
+typedef exprtk::expression<double>     expression_d;
+typedef exprtk::parser<double>             parser_d;
 
 size_t findNth(string s1,string s2,unsigned int i);
 class variable{
@@ -42,26 +42,26 @@ protected:
 
 	vector	<variable>	variables;
 	string				equation;
-//	symbol_table_d SymTab;
-//	expression_d expression_e;
+	//	symbol_table_d SymTab;
+	//	expression_d expression_e;
 
-//
+	//
 public:
-//	parser_d 						parser_e;
-//						expression(expression e);
-						expression	();
-						expression 	(string s);
-						expression	(vector <variable> Variables,string tmplt);
-						expression(vector <string> Names,vector <double> values,string tmplt);
-//	void				ParseTemplate();
+	//	parser_d 						parser_e;
+	//						expression(expression e);
+	expression	();
+	expression 	(string s);
+	expression	(vector <variable> Variables,string tmplt);
+	expression(vector <string> Names,vector <double> values,string tmplt);
+	//	void				ParseTemplate();
 	void 				SetVariables(vector <variable> Variables);
 	void 				SetVariables(vector <string> Names,vector <double> values);
-//	void 				ParseVariables();
-//	bool 				boolevalVal();
-//	double				evalVal();
-//	bool	CheckVariablesFormat(vector <variable> Variables);
-//
-//	void 	SetTemplet	(string tmplt);
+	//	void 				ParseVariables();
+	//	bool 				boolevalVal();
+	//	double				evalVal();
+	//	bool	CheckVariablesFormat(vector <variable> Variables);
+	//
+	//	void 	SetTemplet	(string tmplt);
 
 };
 typedef expression	term;
@@ -79,7 +79,7 @@ protected:
 public:
 	paraString();
 	paraString(string tmplt);
-//	paraString(string tmplt,vector <variable> Variables);
+	//	paraString(string tmplt,vector <variable> Variables);
 	int					numOfAtomParaString();// done, CHECKED
 	string 				GetTemplate		();
 	string				GetNumOfVars	();
@@ -102,8 +102,8 @@ protected:
 public:
 	successor();
 	successor(string tmplt);
-//	successor(string tmplt,vector	<expression> SucVars);
-//	successor(string tmplt,vector	<expression> SucVars,vector <variable> Variables);
+	//	successor(string tmplt,vector	<expression> SucVars);
+	//	successor(string tmplt,vector	<expression> SucVars,vector <variable> Variables);
 
 };
 typedef paraString predecessor;/*a Parastring - a substring at the previous step*/
@@ -120,8 +120,8 @@ public:
 	vector	<expression>	t;
 	word();
 	word(string StWord);
-//	word(sideConLeft L,successor S,predecessor P,sideConRight R);
-////
+	//	word(sideConLeft L,successor S,predecessor P,sideConRight R);
+	////
 	void ParseTerms(string S);
 };
 class LSYS{
@@ -143,6 +143,10 @@ public:
 	 * C2=...;
 	 * C3=...;
 	 * dt=...;*/
+	symbol_table_d 		SymTab;
+	expression_d 		expression_e;
+	parser_d			parser_e;
+
 	string 				axiom;
 	string 				current;
 	paraString			p;
@@ -151,11 +155,12 @@ public:
 	vector	<string>	history;
 	vector	<variable>	constants;
 	LSYS(string s);
-////	//	~LSYS();
+	////	//	~LSYS();
 	string ignoreIt(string s);
-////	bool leftCon(string oldword,size_t t,sideConLeft left);
-////	bool rightCon(string oldword,size_t t,sideConRight right);
+	////	bool leftCon(string oldword,size_t t,sideConLeft left);
+	////	bool rightCon(string oldword,size_t t,sideConRight right);
 	int propagate();
 	string GetNewWord(size_t* t_i);
+	string GetPnumfromPtempRev(string LTemplate,size_t t);
 };
 #endif /* LSYS_PARA_H_ */

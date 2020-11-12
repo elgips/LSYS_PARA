@@ -19,7 +19,7 @@ size_t findNth(string s1,string s2,unsigned int i){
 		}
 
 	}
-	return nthLoc;
+	return nthLoc-1;
 }
 /*Variable definition*/
 variable::variable(void){
@@ -120,7 +120,7 @@ void paraString::ParseTemplate(){
 	int p_num=1;
 	if(Template.find("[")==Template.npos){
 		numOfVars="_0";
-		namesClean=Template;
+		namesClean="_"+Template;
 	}else{
 		while(t1<Template.length()){
 			t2=SubTemp.find("[");
@@ -237,6 +237,7 @@ int paraString::numOfAtomParaString(){
 	string s=this->namesClean;
 	return count(s.begin(),s.end(), '_');
 }
+
 paraString paraString::SubParaString(int t_i,int t_e){
 	/*gets location of first and last atomic Parastrings (atomic index, not char index, and returning
 	 * the suitable subParastring.*/
@@ -247,9 +248,15 @@ paraString paraString::SubParaString(int t_i,int t_e){
 		cout << "Invalid input, the program now will terminate" << endl;
 		terminate();
 	}
+	if (t_e==n){
+		paraString psSub(Template);
+		return psSub;
+	}
 	int n_i=findNth(namesClean, "_", t_i);
-	int n_e=findNth(namesClean, "_", t_i+1);
-	firstAtom=namesClean.substr(n_i, n_e-n_i-1);
+	int n_e;
+	firstAtom=namesClean.substr(n_i);
+	n_e=findNth(firstAtom, "_", t_i+1);
+	firstAtom=firstAtom.substr(0,n_e);
 	n_i=findNth(numOfVars, "_", t_i);
 	n_e=findNth(numOfVars, "_", t_i+1);
 	nVarFirst=stoi(numOfVars.substr(n_i, n_e-n_i-1));
@@ -395,9 +402,9 @@ word::word(string STWORD){
 
 	//terms
 
-	//successor variables
 	if(t_t!=temp_s.npos){
-		ParseTerms(temp_s.substr(t_t+1,t_p-1-t_t));
+		string tempTerms=temp_s.substr(t_t+1);
+		ParseTerms(tempTerms);
 	}
 	//successor
 	temp_s=STWORD.substr(t_p+2);
@@ -458,6 +465,7 @@ WORDS:
 
 LSYS::LSYS(string s){
 	size_t ti,te;
+	string Stword;
 	s.erase(remove(s.begin(), s.end(), ' '), s.end());
 
 
@@ -467,16 +475,18 @@ LSYS::LSYS(string s){
 		cout << "system's axiom is missing" << endl;
 		terminate();
 	}
-	te=(s.substr(ti)).find("endAXIOM;");
-	if(te==s.npos){
+	Stword=s.substr(ti+6);
+	te=Stword.find("endAXIOM;");
+	if(te==Stword.npos){
 		cout << "system's axiom end-statement is missing" << endl;
 		terminate();
 	}
-	axiom=s.substr(ti+6,te-ti-6);
+	Stword=Stword.substr(0,te);
+	axiom=Stword;
 	history.push_back(axiom);
 	current=axiom;
 	/*WORDS PARSE*/
-	string Stword;
+
 	ti=s.find("WORDS:");
 	if(ti==s.npos){
 		cout << "WARNING :THERE ARE NO WORDS DEFINED" << endl;
@@ -488,7 +498,7 @@ LSYS::LSYS(string s){
 			terminate();
 		}
 		Stword=Stword.substr(0,te);
-//		cout << Stword;
+		//		cout << Stword;
 		while (!Stword.empty()){
 			te=Stword.find(";");
 			if(te!=Stword.npos){
@@ -523,7 +533,23 @@ string LSYS::ignoreIt(string s){
 	}
 	return s;
 }
-
+string LSYS::GetPnumfromPtempRev(string LTemplate,size_t t){
+string Lnum="";
+size_t Temp_t=LTemplate.length(),t_num=t,t_sym=Temp_t;
+while((t_sym>0)&&(t_num>0)){
+	if(LTemplate[t_sym]==']'){
+		while(current[--t_num]!='[');
+//		t_num--;
+		while(LTemplate[--t_sym]!='[');
+//		t_sym--;
+	}else{
+		t_sym--;
+		t_num--;
+	}
+}
+Lnum=current.substr(t_num, t-t_num);
+return Lnum;
+}
 
 
 //int LSYS::propagate(){
@@ -546,330 +572,360 @@ string LSYS::ignoreIt(string s){
 string LSYS::GetNewWord(size_t* t_i){
 	//	/*Find index of the current old sentence substring- fr both VarNum and CleanNames format*/
 	string subOldSentance=current.substr(*t_i),leftCon;
-	string	tempVarNums="",choTempVarNums="",tempNamesClean="",choTempNamesClean="",leftResidual,rightResidual;
+	string	tempVarNums="",choTempVarNums="",tempNamesClean="",choTempNamesClean="",leftResidual,rightResidual,tempTemplate;
 	paraString p1(subOldSentance);
 	string p1CleanNames=p1.GetNamesClean();
 	string p1VarNums=p1.GetNumOfVars();
 	word best;
+	string last;
+	string Leftnum;
+	unsigned int lastCount;
 	bool	newWordFoundFlag=false;//boolean variable for the question - do we have yet a proper non default nominee
 	bool	rightSideCon,leftSideCon,unitedTermsCon;// boolean variables for the Q's: does the right side condition meets? and same for left
 	vector	<word>::	iterator w_it;
 	vector	<term>::	iterator t_it;
-	size_t iVar,iNames,iTempName,iTempVar,t2;
+	vector	<variable> v_it;
+	size_t iVar,iNames,iTempName,iTempVar,t0,t2;
 	/* for loop all the possible words fit (maximal predecessor,keeping all terms) -so we got a simple function -
 	 * gets the current maximal word length(parametric, no numbers), checking if the current predecessor fits the string head, after words calls for terms checking function, than
 	 * if word length is maximal, then parsing, and holding the new one as the best, untill scanning all words, across the oldSubString. returning the current location in the old string, and the new parsed word for the new string
 	 */
 	for(w_it=words.begin();w_it!=words.end();w_it++){
 		//Check predecessor fit,and maximal size
-						tempVarNums=(w_it->p).GetNumOfVars();
-						tempNamesClean=(w_it->p).GetNamesClean();
-						iVar=p1VarNums.find(tempVarNums);
-						iNames=p1CleanNames.find(tempNamesClean);
-						//double fitting - clean names and number of variables in each function, at the start of the current location
-						if((iVar==0)&&(iNames==0)){
-							iTempName=tempNamesClean.length();
-							iTempVar=tempVarNums.length();
-							// clean names length greater then the best fit so far length of clean names
-							if(iTempName>choTempNamesClean.length()){
-								//right and left terms met
-								rightSideCon=w_it->r.GetTemplate().empty();
-								if(!rightSideCon){
-									rightResidual=p1CleanNames.substr(iTempName);
-									rightSideCon=(rightResidual.find((w_it->r).GetNamesClean())==0);
-									rightResidual=p1VarNums.substr(iTempVar);
-									if(rightResidual=="")rightResidual="_0";
-									rightSideCon=rightSideCon&&(rightResidual.find((w_it->r).GetNumOfVars())==0);
-
-								}
-								leftSideCon=w_it->l.GetTemplate().empty();
-								if(!leftSideCon){
-									paraString pl(current.substr(0,*t_i));
-									leftCon=(w_it->l).GetNamesClean();
-									t2=pl.GetNamesClean().rfind(leftCon);
-									leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNamesClean().length());
-									leftCon=(w_it->l).GetNumOfVars();
-									t2=pl.GetNumOfVars().rfind(leftCon);
-									leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNumOfVars().length());
-//									leftSideCon=leftSideCon&&(t2!=leftResidual.npos)&&(t2+leftCon.length()==leftResidual.length());
-								}
-								if(leftSideCon&&rightSideCon){
-
-									best=*w_it;
-									choTempNamesClean=tempNamesClean;
-								}
-							}
+		tempVarNums=(w_it->p).GetNumOfVars();
+		tempNamesClean=(w_it->p).GetNamesClean();
+		iVar=p1VarNums.find(tempVarNums);
+		iNames=p1CleanNames.find(tempNamesClean);
+		//double fitting - clean names and number of variables in each function, at the start of the current location
+		if((iVar==0)&&(iNames==0)){
+			tempTemplate=w_it->p.GetTemplate();
+			last=tempTemplate.back();
+			lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
+			t0=findNth(subOldSentance, last, lastCount);
+//			paraString Ptemp=p1.SubParaString(0,(w_it->p).numOfAtomParaString());
+			iTempName=tempNamesClean.length();
+			iTempVar=tempVarNums.length();
+			// clean names length greater then the best fit so far length of clean names
+			if(iTempName>choTempNamesClean.length()){
+				//right and left terms met
+				rightSideCon=w_it->r.GetTemplate().empty();
+				if(!rightSideCon){
+					//									if(w_it->p.GetTemplate().find("[")==w_it->p.GetTemplate().npos){
+					//										string tempRight=p1.Template.substr(p1.Template.find(w_it->p.GetTemplate()));
+					//									}
+					//									if(w_it->r.GetTemplate().find("[")==w_it->p.GetTemplate().npos){
+					//										paraString Rtemp(w_it->r);
+					//									}else{
+					//
+					//									}
+					//									paraString Rtemp=p1.SubParaString((w_it->p).numOfAtomParaString(),(w_it->r).numOfAtomParaString());
+					tempTemplate=w_it->r.GetTemplate();
+					last=tempTemplate.back();
+					lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
+					t0=t0+findNth(subOldSentance.substr(t0),last,lastCount);
+					rightResidual=p1CleanNames.substr(iTempName);
+					rightSideCon=(rightResidual.find((w_it->r).GetNamesClean())==0);
+					rightResidual=p1VarNums.substr(iTempVar);
+					if(rightResidual=="")rightResidual="_0";
+					rightSideCon=rightSideCon&&(rightResidual.find((w_it->r).GetNumOfVars())==0);
+				}
+				leftSideCon=w_it->l.GetTemplate().empty();
+				if(!leftSideCon){
+					paraString pl(current.substr(0,*t_i));
+//					int atmNum=pl.numOfAtomParaString();
+//					paraString pSubl=pl.SubParaString(atmNum, atmNum);
+					leftCon=(w_it->l).GetNamesClean();
+					t2=pl.GetNamesClean().rfind(leftCon);
+					leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNamesClean().length());
+					leftCon=(w_it->l).GetNumOfVars();
+					t2=pl.GetNumOfVars().rfind(leftCon);
+					leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNumOfVars().length());
+					Leftnum=GetPnumfromPtempRev(w_it->l.GetTemplate(),*t_i);
+				}
+				if(leftSideCon&&rightSideCon){
+					paraString pSy(w_it->l.GetTemplate()+w_it->p.GetTemplate()+w_it->r.GetTemplate());
+					paraString pNum(Leftnum+current.substr(*t_i,*t_i+t0));
+					// set variables names and values
+					v_it=p1.GetVariablesWithValues(pSy , pNum);
+					// set in math parser
+					cout << Leftnum << endl;
+				}
+				//TERMS
+				//SET VARIABLES VALUES
+				//									best=*w_it;
+				//									choTempNamesClean=tempNamesClean;
+			}
+		}
 	}
-	}
-		//	size_t oldNamLoc=findNth(oldString.GetNamesClean(), "_", *t_i);
-		//	size_t oldVarNLoc=findNth(oldString.GetNumOfVars(), "_", *t_i);
-		//	bool	newWordFoundFlag=false;//boolean variable for the question - do we have yet a proper non default nominee
-		//	bool	rightSideCon,leftSideCon,unitedTermsCon=1;// boolean variables for the Q's: does the right side condition meets? and same for left
-		//	string	chosenOldWord="",chosenParsedNewWord,leftCon;//chosenOldWord - the current old word string template,chosenParsedNewWord - the return value of parsed (with variable numeric values included
-		//	string	oldVarNums=(oldString.GetNumOfVars()).substr(oldVarNLoc),oldCleanNames=(oldString.GetNamesClean()).substr(oldNamLoc);// current sub strings for the current sub sentence
-		//	string	tempVarNums="",choTempVarNums="",tempNamesClean="",choTempNamesClean="",leftResidual,rightResidual;
-		//	vector	<word>::	iterator w_it;
-		//	vector	<term>::	iterator t_it;
-		//	size_t iVar,iNames,iTempName,iTempVar,t2;
-		//
-		//	/* for loop all the possible words fit (maximal predecessor,keeping all terms) -so we got a simple function -
-		//	 * gets the current maximal word length(parametric, no numbers), checking if the current predecessor fits the string head, after words calls for terms checking function, than
-		//	 * if word length is maximal, then parsing, and holding the new one as the best, untill scanning all words, across the oldSubString. returning the current location in the old string, and the new parsed word for the new string
-		//	 */
-		//	for(w_it=words.begin();w_it!=words.end();w_it++){
-		//		//Check predecessor fit,and maximal size
-		//		tempVarNums=(w_it->p).GetNumOfVars();
-		//		tempNamesClean=(w_it->p).GetNamesClean();
-		//		iVar=oldVarNums.find(tempVarNums);
-		//		iNames=oldCleanNames.find(tempNamesClean);
-		//		//double fitting - clean names and number of variables in each function, at the start of the current location
-		//		if((iVar==0)&&(iNames==0)){
-		//			iTempName=tempNamesClean.length();
-		//			iTempVar=tempVarNums.length();
-		//			// clean names length greater then the best fit so far length of clean names
-		//			if(iTempName>choTempNamesClean.length()){
-		//				//right and left terms met
-		//				rightSideCon=w_it->r.GetTemplate().empty();
-		//				if(!rightSideCon){
-		//					rightResidual=oldCleanNames.substr(iTempName);
-		//					rightSideCon=(rightResidual.find((w_it->r).GetNamesClean())==0);
-		//					rightResidual=oldVarNums.substr(iTempVar);
-		//					rightSideCon=rightSideCon&&(rightResidual.find((w_it->r).GetNumOfVars())==0);
-		//
-		//				}
-		//				leftSideCon=w_it->l.GetTemplate().empty();
-		//				if(!leftSideCon){
-		//									leftResidual=(oldString.GetNumOfVars()).substr(0,*t_i);
-		//									leftCon=(w_it->l).GetNamesClean();
-		//									t2=leftResidual.rfind(leftCon);
-		//									leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==leftResidual.length());
-		//									leftResidual=oldVarNums.substr(iTempVar);
-		//									leftCon=(w_it->l).GetNumOfVars();
-		//									t2=leftResidual.rfind(leftCon);
-		//									leftSideCon=rightSideCon&&leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==leftResidual.length());
-		//								}
-		//				if(rightSideCon&&leftSideCon){
-		//					//If both sides  conditions are met, we continue to checking the terms
-		//					vector <variable> 	v;
-		//					unsigned int NoS=count(tempVarNums.begin(),tempVarNums.end(),'_');
-		//					unsigned int iSubOld=count(tempVarNums.begin(),tempVarNums.end(),'_');
-		//					predecessor pTemp()
-		//					// get predecessor variables
-		//					// get the variables values
-		//					if(!w_it->t.empty()){
-		//						for(t_it=w_it->t.begin();t_it!=w_it->t.end();t_it++){
-		//
-		//						}
-		//					}
-		//				}
-		//			}
-		//		}
-		//	}
-		////	*PartialOldString=OldStringResidual;
-		//	return chosenParsedNewWord;
-		return "-1";
-	}
-	/*making a complete and and value variables set from two variables set- 1) symbolic with no values, only param names,and one numeric with paramvalues but generic names
-	 *  */
-	//	//		input - standard LSYS formulation:
-	//	//
-	//	//		axiom: ####;
-	//	//		words:
-	//	//		#->#;
-	//	//		#->#;
-	//	//		#->#;
-	//	//		endsys
-	//	/*input may be any set of chars excluding ';'*/
-	//	//Initialize simulation time
-	//	timestep=0;
+	//	size_t oldNamLoc=findNth(oldString.GetNamesClean(), "_", *t_i);
+	//	size_t oldVarNLoc=findNth(oldString.GetNumOfVars(), "_", *t_i);
+	//	bool	newWordFoundFlag=false;//boolean variable for the question - do we have yet a proper non default nominee
+	//	bool	rightSideCon,leftSideCon,unitedTermsCon=1;// boolean variables for the Q's: does the right side condition meets? and same for left
+	//	string	chosenOldWord="",chosenParsedNewWord,leftCon;//chosenOldWord - the current old word string template,chosenParsedNewWord - the return value of parsed (with variable numeric values included
+	//	string	oldVarNums=(oldString.GetNumOfVars()).substr(oldVarNLoc),oldCleanNames=(oldString.GetNamesClean()).substr(oldNamLoc);// current sub strings for the current sub sentence
+	//	string	tempVarNums="",choTempVarNums="",tempNamesClean="",choTempNamesClean="",leftResidual,rightResidual;
+	//	vector	<word>::	iterator w_it;
+	//	vector	<term>::	iterator t_it;
+	//	size_t iVar,iNames,iTempName,iTempVar,t2;
 	//
-	//	//Parsing the expression
-	//	//	this->words = new vector<word>;
-	//	//	this->ignore= new string;
-	//	//	this->axiom=new string;
-	//	string temp,temp_p,temp_s;
-	//	size_t t1,t2;
-	//	//	//step 1 - axiom
-	//	t1=s.find("#ignore:");
-	//	if(t1!=s.npos){
-	//		t2=s.find(";");
-	//		this->ignore=s.substr(t1+8,t2-t1-8);}
-	//	t1=s.find("axiom:");
-	//	if(t1==s.npos){
-	//		cout << "system's axiom is missing" << endl;
-	//		terminate();
-	//	}
-	//	t2=s.find(";words:");
-	//	if(t2==s.npos){
-	//		cout << "Illegal input -axiom footer or words header" << endl;
-	//		terminate();
-	//	}
-	//	this->axiom=s.substr(t1+6,t2-t1-6);
-	//	history.push_back(axiom);
-	//	//step 2 - words
-	//	s=s.substr(t2+7);
-	//	t1=s.find(";");
-	//	if(t1==s.npos){
-	//		cout << "no legal words" << endl;
-	//		terminate();
-	//	}
-	//	while(t1!=s.npos){
-	//		word w;
-	//		t1=s.find(";");
-	//		temp=s.substr(0,t1);
-	//		temp.erase(remove(temp.begin(), temp.end(), ';'), temp.end());
-	//		t1=temp.find("->");
-	//		if((t1!=temp.npos)&&(!(temp.substr(0,t1)).empty())){
-	//			temp_p=temp.substr(0,t1);
-	//			//			 if left term exist than extract it
-	//			if(temp_p.find("<")!=temp_p.npos){
-	//				size_t tl=temp_p.find("<");
-	//				//				left term extraction
-	//				w.l=temp_p.substr(0,tl);
-	//				//					cout << w.l << endl;
-	//				//Predecessor
-	//				temp_p=temp_p.substr(tl+1);
-	//				//					cout << temp_p << endl;
-	//			}else w.l="";
-	//			if(temp_p.find(">")!=temp_p.npos){
-	//				size_t tl=temp_p.find(">");
-	//				//left term extraction
-	//				w.r=temp_p.substr(tl+1);
-	//				//					cout << w.l << endl;
-	//				//predeccessor
-	//				temp_p=temp_p.substr(0,tl);
-	//				//					cout << temp_p << endl;
-	//			}else w.r="";
-	//			//				cout<<temp<<endl;
-	//			if(!((temp.substr(t1+2)).empty())){
-	//				temp_s=temp.substr(t1+2);
-	//			}else temp_s=temp_p;
-	//			w.p=temp_p;
-	//			//								cout << "pre:"<<w.p << endl;
-	//			w.s=temp_s;
-	//			//								cout << "suc:"<<w.s << endl;
-	//			//			word *q=&w;
-	//			this->words.push_back(w);
-	//		}
-	//		t1=s.find(";");
-	//		s=s.substr(t1+1);
-	//	}
-	//	t1=s.find("endsys");
-	//	if(t1==s.npos){
-	//		cout << "footnote e 'endsys' is missing " << endl;
-	//		terminate();
-	//	}}
-	////
-	////
-	////}
-	////LSYS::~LSYS(){
-	////	delete &(this->words);
-	////}
-	//string LSYS::ignoreIt(string s){
-	//	for(unsigned int i=0;i<this->ignore.length();i++){
-	//		s.erase(remove(s.begin(), s.end(), this->ignore[i]), s.end());
-	//	}
-	//	return s;
-	//}
-	////
-	//bool LSYS::leftCon(string oldword,size_t t,string left){
-	//	if(left.length()==0)
-	//		return 1;
-	//	if((t==0)&&(left.length()>0))
-	//		return 0;
-	//	if(t-left.length()<0)
-	//		return 0;
+	//	/* for loop all the possible words fit (maximal predecessor,keeping all terms) -so we got a simple function -
+	//	 * gets the current maximal word length(parametric, no numbers), checking if the current predecessor fits the string head, after words calls for terms checking function, than
+	//	 * if word length is maximal, then parsing, and holding the new one as the best, untill scanning all words, across the oldSubString. returning the current location in the old string, and the new parsed word for the new string
+	//	 */
+	//	for(w_it=words.begin();w_it!=words.end();w_it++){
+	//		//Check predecessor fit,and maximal size
+	//		tempVarNums=(w_it->p).GetNumOfVars();
+	//		tempNamesClean=(w_it->p).GetNamesClean();
+	//		iVar=oldVarNums.find(tempVarNums);
+	//		iNames=oldCleanNames.find(tempNamesClean);
+	//		//double fitting - clean names and number of variables in each function, at the start of the current location
+	//		if((iVar==0)&&(iNames==0)){
+	//			iTempName=tempNamesClean.length();
+	//			iTempVar=tempVarNums.length();
+	//			// clean names length greater then the best fit so far length of clean names
+	//			if(iTempName>choTempNamesClean.length()){
+	//				//right and left terms met
+	//				rightSideCon=w_it->r.GetTemplate().empty();
+	//				if(!rightSideCon){
+	//					rightResidual=oldCleanNames.substr(iTempName);
+	//					rightSideCon=(rightResidual.find((w_it->r).GetNamesClean())==0);
+	//					rightResidual=oldVarNums.substr(iTempVar);
+	//					rightSideCon=rightSideCon&&(rightResidual.find((w_it->r).GetNumOfVars())==0);
 	//
-	//	string preword="";
-	//	preword=oldword.substr(0,t);
-	//	preword=this->ignoreIt(preword);
-	//	size_t t2=preword.rfind(left);
-	//	if(t2==preword.npos)
-	//		return 0;
-	//	if(t2+left.length()==preword.length())
-	//		return 1;
-	//	return 0;}
+	//				}
+	//				leftSideCon=w_it->l.GetTemplate().empty();
+	//				if(!leftSideCon){
+	//									leftResidual=(oldString.GetNumOfVars()).substr(0,*t_i);
+	//									leftCon=(w_it->l).GetNamesClean();
+	//									t2=leftResidual.rfind(leftCon);
+	//									leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==leftResidual.length());
+	//									leftResidual=oldVarNums.substr(iTempVar);
+	//									leftCon=(w_it->l).GetNumOfVars();
+	//									t2=leftResidual.rfind(leftCon);
+	//									leftSideCon=rightSideCon&&leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==leftResidual.length());
+	//								}
+	//				if(rightSideCon&&leftSideCon){
+	//					//If both sides  conditions are met, we continue to checking the terms
+	//					vector <variable> 	v;
+	//					unsigned int NoS=count(tempVarNums.begin(),tempVarNums.end(),'_');
+	//					unsigned int iSubOld=count(tempVarNums.begin(),tempVarNums.end(),'_');
+	//					predecessor pTemp()
+	//					// get predecessor variables
+	//					// get the variables values
+	//					if(!w_it->t.empty()){
+	//						for(t_it=w_it->t.begin();t_it!=w_it->t.end();t_it++){
 	//
-	///*a function that checks the right term*/
-	//bool LSYS::rightCon(string oldword,size_t t2,string right){
-	//	if(right.length()==0)
-	//		return 1;
-	//	if(t2>oldword.length())
-	//		return 0;
-	//	string postword=oldword.substr(t2);
-	//	postword=this->ignoreIt(postword);
-	//	if(right.length()>postword.length())
-	//		return 0;
-	//	size_t t1=postword.find(right);
-	//	if (t1==0)
-	//		return 1;
-	//	return 0;}
-	//
-	///*a function the propagate the system one time step and prints the system's current state*/
-	//int LSYS::propagate(){
-	//	string oldword=*(--this->history.end());
-	//	string bestpre,bestsuc,tempPre,tempLeft,tempRight,bestLeft,bestRight;
-	//	string newword="";
-	//	int condition,lcon,rcon;
-	//	size_t t_old1=0,tp;
-	//	vector<word>::iterator t;
-	//	while(t_old1<oldword.length()){
-	//		condition=0;
-	//		bestpre="";
-	//		bestsuc="";
-	//		tempPre="";
-	//		tempLeft="";
-	//		tempRight="";
-	//		bestRight="";
-	//		bestLeft="";
-	//		for(t=this->words.begin();t!=this->words.end();t++){
-	//			tempPre=t->p;
-	//			tempLeft=t->l;
-	//			tempRight=t->r;
-	//			lcon=0;
-	//			rcon=0;
-	//			tp=oldword.substr(t_old1).find(tempPre);
-	//			//				cout << oldword.substr(t_old1).length() <<endl;
-	//			if(tp==0){
-	//
-	//				//					if(tempLeft.empty())lcon=1;
-	//				//					else if (tempLeft.length()>t_old1)lcon=0;
-	//				//				//					else lcon=(tempLeft==oldword.substr(t_old1-tempLeft.length(),tempLeft.length()));
-	//				//				//					if(tempRight.empty())rcon=1;
-	//				//				//					else if (tempRight.length()>(oldword.substr(t_old1)).length()-tempPre.length())rcon=0;
-	//				//				//					else rcon=(tempRight==oldword.substr(t_old1+tempPre.length(),tempRight.length()));
-	//				lcon=this->leftCon(oldword, t_old1, tempLeft);
-	//				rcon=this->rightCon(oldword, t_old1+tempPre.length(), tempRight);
-	//				if((tempPre.length()>=bestpre.length())&&(tempLeft.length()>=bestLeft.length())&&(tempRight.length()>=bestRight.length())&&lcon&&rcon){
-	//					if(tempPre.length()>bestpre.length()){
-	//						bestpre=tempPre;
-	//						tempLeft=bestLeft;
-	//						tempRight=bestRight;
-	//						bestsuc=t->s;
-	//						condition=1;
-	//					}else if((tempRight.length()>bestRight.length())||(tempLeft.length()>bestLeft.length())){
-	//						bestpre=tempPre;
-	//						tempLeft=bestLeft;
-	//						tempRight=bestRight;
-	//						bestsuc=t->s;
-	//						condition=1;
+	//						}
 	//					}
 	//				}
 	//			}
 	//		}
-	//		if(condition==0){
-	//			bestpre=oldword[t_old1];
-	//			bestsuc=bestpre;
-	//		}
-	//
-	//		newword+=bestsuc;
-	//		//			cout<< newword<< endl;
-	//		t_old1+=bestpre.length();
 	//	}
-	//	cout<< newword<< endl;
-	//	this->history.push_back(newword);
-	//	this->timestep++;
-	//	return 0;}
+	////	*PartialOldString=OldStringResidual;
+	//	return chosenParsedNewWord;
+	return "-1";
+}
+/*making a complete and and value variables set from two variables set- 1) symbolic with no values, only param names,and one numeric with paramvalues but generic names
+ *  */
+//	//		input - standard LSYS formulation:
+//	//
+//	//		axiom: ####;
+//	//		words:
+//	//		#->#;
+//	//		#->#;
+//	//		#->#;
+//	//		endsys
+//	/*input may be any set of chars excluding ';'*/
+//	//Initialize simulation time
+//	timestep=0;
+//
+//	//Parsing the expression
+//	//	this->words = new vector<word>;
+//	//	this->ignore= new string;
+//	//	this->axiom=new string;
+//	string temp,temp_p,temp_s;
+//	size_t t1,t2;
+//	//	//step 1 - axiom
+//	t1=s.find("#ignore:");
+//	if(t1!=s.npos){
+//		t2=s.find(";");
+//		this->ignore=s.substr(t1+8,t2-t1-8);}
+//	t1=s.find("axiom:");
+//	if(t1==s.npos){
+//		cout << "system's axiom is missing" << endl;
+//		terminate();
+//	}
+//	t2=s.find(";words:");
+//	if(t2==s.npos){
+//		cout << "Illegal input -axiom footer or words header" << endl;
+//		terminate();
+//	}
+//	this->axiom=s.substr(t1+6,t2-t1-6);
+//	history.push_back(axiom);
+//	//step 2 - words
+//	s=s.substr(t2+7);
+//	t1=s.find(";");
+//	if(t1==s.npos){
+//		cout << "no legal words" << endl;
+//		terminate();
+//	}
+//	while(t1!=s.npos){
+//		word w;
+//		t1=s.find(";");
+//		temp=s.substr(0,t1);
+//		temp.erase(remove(temp.begin(), temp.end(), ';'), temp.end());
+//		t1=temp.find("->");
+//		if((t1!=temp.npos)&&(!(temp.substr(0,t1)).empty())){
+//			temp_p=temp.substr(0,t1);
+//			//			 if left term exist than extract it
+//			if(temp_p.find("<")!=temp_p.npos){
+//				size_t tl=temp_p.find("<");
+//				//				left term extraction
+//				w.l=temp_p.substr(0,tl);
+//				//					cout << w.l << endl;
+//				//Predecessor
+//				temp_p=temp_p.substr(tl+1);
+//				//					cout << temp_p << endl;
+//			}else w.l="";
+//			if(temp_p.find(">")!=temp_p.npos){
+//				size_t tl=temp_p.find(">");
+//				//left term extraction
+//				w.r=temp_p.substr(tl+1);
+//				//					cout << w.l << endl;
+//				//predeccessor
+//				temp_p=temp_p.substr(0,tl);
+//				//					cout << temp_p << endl;
+//			}else w.r="";
+//			//				cout<<temp<<endl;
+//			if(!((temp.substr(t1+2)).empty())){
+//				temp_s=temp.substr(t1+2);
+//			}else temp_s=temp_p;
+//			w.p=temp_p;
+//			//								cout << "pre:"<<w.p << endl;
+//			w.s=temp_s;
+//			//								cout << "suc:"<<w.s << endl;
+//			//			word *q=&w;
+//			this->words.push_back(w);
+//		}
+//		t1=s.find(";");
+//		s=s.substr(t1+1);
+//	}
+//	t1=s.find("endsys");
+//	if(t1==s.npos){
+//		cout << "footnote e 'endsys' is missing " << endl;
+//		terminate();
+//	}}
+////
+////
+////}
+////LSYS::~LSYS(){
+////	delete &(this->words);
+////}
+//string LSYS::ignoreIt(string s){
+//	for(unsigned int i=0;i<this->ignore.length();i++){
+//		s.erase(remove(s.begin(), s.end(), this->ignore[i]), s.end());
+//	}
+//	return s;
+//}
+////
+//bool LSYS::leftCon(string oldword,size_t t,string left){
+//	if(left.length()==0)
+//		return 1;
+//	if((t==0)&&(left.length()>0))
+//		return 0;
+//	if(t-left.length()<0)
+//		return 0;
+//
+//	string preword="";
+//	preword=oldword.substr(0,t);
+//	preword=this->ignoreIt(preword);
+//	size_t t2=preword.rfind(left);
+//	if(t2==preword.npos)
+//		return 0;
+//	if(t2+left.length()==preword.length())
+//		return 1;
+//	return 0;}
+//
+///*a function that checks the right term*/
+//bool LSYS::rightCon(string oldword,size_t t2,string right){
+//	if(right.length()==0)
+//		return 1;
+//	if(t2>oldword.length())
+//		return 0;
+//	string postword=oldword.substr(t2);
+//	postword=this->ignoreIt(postword);
+//	if(right.length()>postword.length())
+//		return 0;
+//	size_t t1=postword.find(right);
+//	if (t1==0)
+//		return 1;
+//	return 0;}
+//
+///*a function the propagate the system one time step and prints the system's current state*/
+//int LSYS::propagate(){
+//	string oldword=*(--this->history.end());
+//	string bestpre,bestsuc,tempPre,tempLeft,tempRight,bestLeft,bestRight;
+//	string newword="";
+//	int condition,lcon,rcon;
+//	size_t t_old1=0,tp;
+//	vector<word>::iterator t;
+//	while(t_old1<oldword.length()){
+//		condition=0;
+//		bestpre="";
+//		bestsuc="";
+//		tempPre="";
+//		tempLeft="";
+//		tempRight="";
+//		bestRight="";
+//		bestLeft="";
+//		for(t=this->words.begin();t!=this->words.end();t++){
+//			tempPre=t->p;
+//			tempLeft=t->l;
+//			tempRight=t->r;
+//			lcon=0;
+//			rcon=0;
+//			tp=oldword.substr(t_old1).find(tempPre);
+//			//				cout << oldword.substr(t_old1).length() <<endl;
+//			if(tp==0){
+//
+//				//					if(tempLeft.empty())lcon=1;
+//				//					else if (tempLeft.length()>t_old1)lcon=0;
+//				//				//					else lcon=(tempLeft==oldword.substr(t_old1-tempLeft.length(),tempLeft.length()));
+//				//				//					if(tempRight.empty())rcon=1;
+//				//				//					else if (tempRight.length()>(oldword.substr(t_old1)).length()-tempPre.length())rcon=0;
+//				//				//					else rcon=(tempRight==oldword.substr(t_old1+tempPre.length(),tempRight.length()));
+//				lcon=this->leftCon(oldword, t_old1, tempLeft);
+//				rcon=this->rightCon(oldword, t_old1+tempPre.length(), tempRight);
+//				if((tempPre.length()>=bestpre.length())&&(tempLeft.length()>=bestLeft.length())&&(tempRight.length()>=bestRight.length())&&lcon&&rcon){
+//					if(tempPre.length()>bestpre.length()){
+//						bestpre=tempPre;
+//						tempLeft=bestLeft;
+//						tempRight=bestRight;
+//						bestsuc=t->s;
+//						condition=1;
+//					}else if((tempRight.length()>bestRight.length())||(tempLeft.length()>bestLeft.length())){
+//						bestpre=tempPre;
+//						tempLeft=bestLeft;
+//						tempRight=bestRight;
+//						bestsuc=t->s;
+//						condition=1;
+//					}
+//				}
+//			}
+//		}
+//		if(condition==0){
+//			bestpre=oldword[t_old1];
+//			bestsuc=bestpre;
+//		}
+//
+//		newword+=bestsuc;
+//		//			cout<< newword<< endl;
+//		t_old1+=bestpre.length();
+//	}
+//	cout<< newword<< endl;
+//	this->history.push_back(newword);
+//	this->timestep++;
+//	return 0;}
 
 
 
