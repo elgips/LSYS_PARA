@@ -90,7 +90,7 @@ public:
 	void				SetTemplate	(string	tmplt);
 	void				SetVariables(vector <variable> Variables);
 	bool				Parafit(paraString pS);//done, checked
-
+	void 				resetParaString(string s);
 };
 class successor{/*the evolution of that sub string in the current step*/
 protected:

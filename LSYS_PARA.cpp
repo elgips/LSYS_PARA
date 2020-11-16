@@ -245,7 +245,7 @@ paraString paraString::SubParaString(int t_i,int t_e){
 	/*gets location of first and last atomic Parastrings (atomic index, not char index, and returning
 	 * the suitable subParastring.*/
 	string firstAtom,afterLastAtom,subTemp;
-	int nVarFirst,nVarLast;
+	//	int nVarFirst;//,nVarLast;
 	int n=numOfAtomParaString();
 	if((t_i>=n)||(t_e<t_i)){
 		cout << "Invalid input, the program now will terminate" << endl;
@@ -262,7 +262,7 @@ paraString paraString::SubParaString(int t_i,int t_e){
 	firstAtom=firstAtom.substr(0,n_e);
 	n_i=findNth(numOfVars, "_", t_i);
 	n_e=findNth(numOfVars, "_", t_i+1);
-	nVarFirst=stoi(numOfVars.substr(n_i, n_e-n_i-1));
+	//	nVarFirst=stoi(numOfVars.substr(n_i, n_e-n_i-1));
 	n_i=findNth(namesClean, "_", t_e+1);
 	n_e=findNth(namesClean, "_", t_e+2);
 	if(n_i==-1){
@@ -287,6 +287,13 @@ paraString paraString::SubParaString(int t_i,int t_e){
 	return psSub;
 }
 
+void paraString::resetParaString(string s){
+	Template=s;
+	namesClean="";
+	numOfVars="";
+	variables.clear();
+	ParseTemplate();
+}
 /*End of paraString definition*/
 
 /*successor definition*/
@@ -407,7 +414,7 @@ word::word(string STWORD){
 	// side term right
 
 	t_r=temp_s.find(">");
-	if(t_r!=temp_s.npos){
+	if((t_r!=temp_s.npos)&&(t_r<t_t)){
 		t_e=min(t_t,t_p);
 		sideConRight temp(temp_s.substr(t_r+1,t_e-t_r-1));
 		r=temp;
@@ -573,6 +580,7 @@ string LSYS::GetPnumfromPtempRev(string LTemplate,size_t t){
 
 
 string LSYS::ParsSuccessor(successor s){
+	expression_e.register_symbol_table(SymTab);
 	string SucNum="";
 	string SucSym=s.GetTemplate();
 	vector <expression> SucExp=s.GetExpressions();
@@ -595,9 +603,9 @@ string LSYS::ParsSuccessor(successor s){
 						e_it++;}
 				}
 			}
-		t--;}else{
-			SucNum+=SucSym[t];
-		}
+			t--;}else{
+				SucNum+=SucSym[t];
+			}
 	}
 	return SucNum;
 }
@@ -605,9 +613,9 @@ int LSYS::propagate(){
 	/* CLEAN FROM IGNORE EXPRESSIONS*/
 	string newString="";
 	size_t t_i=0;
-//	oldString=ignoreIt(oldString);
-//	paraString psOldString(oldString);
-//	string TempOldStr=oldString;
+	//	oldString=ignoreIt(oldString);
+	//	paraString psOldString(oldString);
+	//	string TempOldStr=oldString;
 	while(t_i<current.length()){
 		newString+=GetNewWord(&t_i);
 	}
@@ -621,11 +629,18 @@ int LSYS::propagate(){
 string LSYS::GetNewWord(size_t* t_i){
 	//	/*Find index of the current old sentence substring- fr both VarNum and CleanNames format*/
 	string subOldSentance=current.substr(*t_i),leftCon;
+	if(ignore.find(subOldSentance[0])!=ignore.npos){
+		*t_i=*t_i+1;
+		return subOldSentance.substr(0, 1);
+	}
 	string	tempVarNums="",choTempVarNums="",tempNamesClean="",choTempNamesClean="",leftResidual,rightResidual,tempTemplate;
-	paraString p1(subOldSentance);
-	string p1CleanNames=p1.GetNamesClean();
-	string p1VarNums=p1.GetNumOfVars();
+	string subOldSentanceIG=ignoreIt(subOldSentance);
+	paraString p1;//(subOldSentanceIG);
+	int nIgnored=subOldSentance.length()-subOldSentanceIG.length();
+	string p1CleanNames;//=p1.GetNamesClean();
+	string p1VarNums;//=p1.GetNumOfVars();
 	string BestSuc;
+	string LeftnumIG;
 	word best;
 	string last;
 	string Leftnum;
@@ -636,7 +651,7 @@ string LSYS::GetNewWord(size_t* t_i){
 	vector	<term>::		iterator	t_it;
 	vector	<variable>::	iterator	v_it;
 	vector	<variable> 					vars;
-	size_t iVar,iNames,iTempName,iTempVar,t0,t2,t_best_temp;
+	size_t iVar,iNames,iTempName,iTempVar,t0,t2,t_best_temp,tpl;
 	/* for loop all the possible words fit (maximal predecessor,keeping all terms) -so we got a simple function -
 	 * gets the current maximal word length(parametric, no numbers), checking if the current predecessor fits the string head, after words calls for terms checking function, than
 	 * if word length is maximal, then parsing, and holding the new one as the best, untill scanning all words, across the oldSubString. returning the current location in the old string, and the new parsed word for the new string
@@ -645,88 +660,99 @@ string LSYS::GetNewWord(size_t* t_i){
 		//Check predecessor fit,and maximal size
 		tempVarNums=(w_it->p).GetNumOfVars();
 		tempNamesClean=(w_it->p).GetNamesClean();
-		iVar=p1VarNums.find(tempVarNums);
-		iNames=p1CleanNames.find(tempNamesClean);
-		//double fitting - clean names and number of variables in each function, at the start of the current location
-		if((iVar==0)&&(iNames==0)){
-			tempTemplate=w_it->p.GetTemplate();
-			last=tempTemplate.back();
-			lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
-			t0=findNth(subOldSentance, last, lastCount);
-			//			paraString Ptemp=p1.SubParaString(0,(w_it->p).numOfAtomParaString());
-			iTempName=tempNamesClean.length();
-			iTempVar=tempVarNums.length();
-			// clean names length greater then the best fit so far length of clean names
-			if(iTempName>choTempNamesClean.length()){
-				//right and left terms met
-				rightSideCon=w_it->r.GetTemplate().empty();
-				if(!rightSideCon){
-					//									if(w_it->p.GetTemplate().find("[")==w_it->p.GetTemplate().npos){
-					//										string tempRight=p1.Template.substr(p1.Template.find(w_it->p.GetTemplate()));
-					//									}
-					//									if(w_it->r.GetTemplate().find("[")==w_it->p.GetTemplate().npos){
-					//										paraString Rtemp(w_it->r);
-					//									}else{
-					//
-					//									}
-					//									paraString Rtemp=p1.SubParaString((w_it->p).numOfAtomParaString(),(w_it->r).numOfAtomParaString());
-					tempTemplate=w_it->r.GetTemplate();
-					last=tempTemplate.back();
-					lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
-					t0=t0+findNth(subOldSentance.substr(t0),last,lastCount);
-					rightResidual=p1CleanNames.substr(iTempName);
-					rightSideCon=(rightResidual.find((w_it->r).GetNamesClean())==0);
-					rightResidual=p1VarNums.substr(iTempVar);
-					if(rightResidual=="")rightResidual="_0";
-					rightSideCon=rightSideCon&&(rightResidual.find((w_it->r).GetNumOfVars())==0);
-				}
-				leftSideCon=w_it->l.GetTemplate().empty();
-				if(!leftSideCon){
-					paraString pl(current.substr(0,*t_i));
-					//					int atmNum=pl.numOfAtomParaString();
-					//					paraString pSubl=pl.SubParaString(atmNum, atmNum);
-					leftCon=(w_it->l).GetNamesClean();
-					t2=pl.GetNamesClean().rfind(leftCon);
-					leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNamesClean().length());
-					leftCon=(w_it->l).GetNumOfVars();
-					t2=pl.GetNumOfVars().rfind(leftCon);
-					leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNumOfVars().length());
-					Leftnum=GetPnumfromPtempRev(w_it->l.GetTemplate(),*t_i);
-				}
-				if(leftSideCon&&rightSideCon){
-					paraString pSy(w_it->l.GetTemplate()+w_it->p.GetTemplate()+w_it->r.GetTemplate());
-					paraString pNum(Leftnum+current.substr(*t_i,*t_i+t0));
-					// set variables names and values
-					vars=p1.GetVariablesWithValues(pSy , pNum);
-					// set in math parser
-					unitedTermsCon=1;
-					SymTab.clear();
-					for(v_it=vars.begin();v_it!=vars.end();v_it++){
-						SymTab.add_variable(v_it->name,v_it->value);
+		tempTemplate=w_it->p.GetTemplate();
+		last=tempTemplate.back();
+		lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
+		tpl=findNth(subOldSentanceIG, last, lastCount);
+		if(tpl>0){
+			p1.resetParaString(subOldSentanceIG.substr(0,tpl+1));
+			p1CleanNames=p1.GetNamesClean();
+			p1VarNums=p1.GetNumOfVars();
+			iVar=p1VarNums.find(tempVarNums);
+			iNames=p1CleanNames.find(tempNamesClean);
+			//double fitting - clean names and number of variables in each function, at the start of the current location
+			if((iVar==0)&&(iNames==0)){
+				tempTemplate=w_it->p.GetTemplate();
+				last=tempTemplate.back();
+				lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
+				t0=findNth(subOldSentanceIG, last, lastCount);
+				//			paraString Ptemp=p1.SubParaString(0,(w_it->p).numOfAtomParaString());
+				iTempName=tempNamesClean.length();
+				iTempVar=tempVarNums.length();
+				// clean names length greater then the best fit so far length of clean names
+				if(iTempName>choTempNamesClean.length()){
+					//right and left terms met
+					rightSideCon=w_it->r.GetTemplate().empty();
+					if(!rightSideCon){
+						//									if(w_it->p.GetTemplate().find("[")==w_it->p.GetTemplate().npos){
+						//										string tempRight=p1.Template.substr(p1.Template.find(w_it->p.GetTemplate()));
+						//									}
+						//									if(w_it->r.GetTemplate().find("[")==w_it->p.GetTemplate().npos){
+						//										paraString Rtemp(w_it->r);
+						//									}else{
+						//
+						//									}
+						//									paraString Rtemp=p1.SubParaString((w_it->p).numOfAtomParaString(),(w_it->r).numOfAtomParaString());
+						tempTemplate=w_it->r.GetTemplate();
+						last=tempTemplate.back();
+						lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
+						t0=t0+findNth(subOldSentance.substr(t0),last,lastCount);
+						rightResidual=p1CleanNames.substr(iTempName);
+						rightSideCon=(rightResidual.find((w_it->r).GetNamesClean())==0);
+						rightResidual=p1VarNums.substr(iTempVar);
+						if(rightResidual=="")rightResidual="_0";
+						rightSideCon=rightSideCon&&(rightResidual.find((w_it->r).GetNumOfVars())==0);
 					}
-					SymTab.add_constants();
-					expression_e.register_symbol_table(SymTab);
-					// checking that all the terms are met
-					for(t_it=w_it->t.begin();t_it!=w_it->t.end();t_it++){
-						parser_e.compile(t_it->GetExpression(), expression_e);
-						unitedTermsCon=unitedTermsCon&&expression_e.value();
+					leftSideCon=w_it->l.GetTemplate().empty();
+					if(!leftSideCon){
+						paraString pl(ignoreIt(current.substr(0,*t_i)));
+						//					int atmNum=pl.numOfAtomParaString();
+						//					paraString pSubl=pl.SubParaString(atmNum, atmNum);
+						leftCon=(w_it->l).GetNamesClean();
+						t2=pl.GetNamesClean().rfind(leftCon);
+						leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNamesClean().length());
+						leftCon=(w_it->l).GetNumOfVars();
+						t2=pl.GetNumOfVars().rfind(leftCon);
+						leftSideCon=(t2!=leftResidual.npos)&&(t2+leftCon.length()==pl.GetNumOfVars().length());
+						Leftnum=GetPnumfromPtempRev(w_it->l.GetTemplate(),*t_i);
+						LeftnumIG=ignoreIt(Leftnum);
 					}
-					if(unitedTermsCon){
-						newWordFoundFlag=true;
-						choTempNamesClean=tempNamesClean;
-						choTempVarNums=tempVarNums;
-						BestSuc=ParsSuccessor(w_it->s);
-						t_best_temp=t0;
-						cout << BestSuc << endl;
-						cout << BestSuc << endl;
-					}
+					if(leftSideCon&&rightSideCon){
+						paraString pSy(w_it->l.GetTemplate()+w_it->p.GetTemplate()+w_it->r.GetTemplate());
+						paraString pNum(LeftnumIG+ignoreIt(subOldSentance.substr(0,t0+1)));
+						// set variables names and values
+						vars=p1.GetVariablesWithValues(pSy , pNum);
+						// set in math parser
+						unitedTermsCon=1;
+						SymTab.clear();
+						for(v_it=vars.begin();v_it!=vars.end();v_it++){
+							SymTab.add_variable(v_it->name,v_it->value);
+						}
+						SymTab.add_constants();
+						expression_e.register_symbol_table(SymTab);
+						//					expression_e.register_symbol_table(SymTab);
+						// checking that all the terms are met
+						for(t_it=w_it->t.begin();t_it!=w_it->t.end();t_it++){
+							parser_e.compile(t_it->GetExpression(), expression_e);
+							unitedTermsCon=unitedTermsCon&&expression_e.value();
+						}
+						if(unitedTermsCon){
+							newWordFoundFlag=true;
+							choTempNamesClean=tempNamesClean;
+							choTempVarNums=tempVarNums;
+							BestSuc=ParsSuccessor(w_it->s);
+							t_best_temp=t0+nIgnored+1;
+							//						cout << BestSuc << endl;
+							//						cout << BestSuc << endl;
+						}
 
-					cout << unitedTermsCon << endl;
+						//					cout << unitedTermsCon << endl;
+					}
+					//TERMS
+					//SET VARIABLES VALUES
+					//									best=*w_it;
+					//									choTempNamesClean=tempNamesClean;
 				}
-				//TERMS
-				//SET VARIABLES VALUES
-				//									best=*w_it;
-				//									choTempNamesClean=tempNamesClean;
 			}
 		}
 	}
@@ -797,11 +823,11 @@ string LSYS::GetNewWord(size_t* t_i){
 	////	*PartialOldString=OldStringResidual;
 	//	return chosenParsedNewWord;
 	if(!newWordFoundFlag){
-		t_i++;
+		*t_i=*t_i+1;
 		return subOldSentance.substr(0, 1);
 	}
 	else{
-		t_i+=t_best_temp;
+		*t_i=*t_i+t_best_temp;
 		return BestSuc;
 	}
 	return "-1";
