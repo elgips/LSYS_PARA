@@ -55,17 +55,26 @@ int main(){
 //			"H<AB>C->Q;"
 //			"endWORDS;"
 //			"IGNORE: @=-+;:'{}*&אבג endIGNORE;");
-		LSYS L("AXIOM: B[0]A endAXIOM;"
+		LSYS L("AXIOM: B[-1]A endAXIOM;"
 				"WORDS: A->AB[1];"
 //				"c[x,y]->g[@{x,y}x*y];"
 				"AB[x]->AB[@{x}x+1]A;"
 				"B[x]A->B[@{x}x+1]AC[@{x} x-1];"
-				"C[x]:@{x} x>=1->Q[@{x} x^2];"//A[z]B[x]B[y]->C[@{x,y,z}z*sin(y+x)];"
+				"C[x]:@{x} x>=1->Q[@{x} x^2];"
+				"Q[x]:@{x} x>3-> -LEAF-;"//A[z]B[x]B[y]->C[@{x,y,z}z*sin(y+x)];"
 //				"H<AB>C->Q;"
 				"endWORDS;"
-				"IGNORE: @=;:'{}*&אבג endIGNORE;");
+				"IGNORE: @=+-;:'{}*&אבג endIGNORE;");
 //	size_t t_i;
 //	t_i=35;
+	L.propagate();
+	cout<<L.current<< endl;
+	L.propagate();
+	cout<<L.current<< endl;
+	L.propagate();
+	cout<<L.current<< endl;
+	L.propagate();
+	cout<<L.current<< endl;
 	L.propagate();
 	cout<<L.current<< endl;
 	L.propagate();

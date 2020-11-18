@@ -223,13 +223,13 @@ bool paraString::Parafit(paraString pS){// checks if a parastring format is iden
 vector <variable> paraString::GetVariablesWithValues(paraString pSymb,paraString pNum){
 	vector <variable> vs,vSy=pSymb.GetVariables(),vN=pNum.GetVariables();
 	vector <variable>::iterator tV1,tV2;
-	if(pSymb.Parafit(pNum)){
+	if(vSy.size()==vN.size()){
 		for(tV1=vSy.begin(),tV2=vN.begin();tV1!=vSy.end();tV1++,tV2++){
 			variable v(tV1->name,tV2->value);
 			vs.push_back(v);
 		}
 	}else{
-		cout << "Parawords doesn't fit, the program now will terminate" << endl;
+		cout << "Variables doesn't fit, the program now will terminate" << endl;
 		terminate();
 	}
 
@@ -651,7 +651,7 @@ string LSYS::GetNewWord(size_t* t_i){
 	vector	<term>::		iterator	t_it;
 	vector	<variable>::	iterator	v_it;
 	vector	<variable> 					vars;
-	size_t iVar,iNames,iTempName,iTempVar,t0,t2,t_best_temp,tpl;
+	size_t iVar,iNames,iTempName,iTempVar,t0,t0IG,t2,t_best_temp,tpl;
 	/* for loop all the possible words fit (maximal predecessor,keeping all terms) -so we got a simple function -
 	 * gets the current maximal word length(parametric, no numbers), checking if the current predecessor fits the string head, after words calls for terms checking function, than
 	 * if word length is maximal, then parsing, and holding the new one as the best, untill scanning all words, across the oldSubString. returning the current location in the old string, and the new parsed word for the new string
@@ -675,7 +675,8 @@ string LSYS::GetNewWord(size_t* t_i){
 				tempTemplate=w_it->p.GetTemplate();
 				last=tempTemplate.back();
 				lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
-				t0=findNth(subOldSentanceIG, last, lastCount);
+				t0IG=findNth(subOldSentanceIG, last, lastCount);
+				t0=findNth(subOldSentance, last, lastCount);
 				//			paraString Ptemp=p1.SubParaString(0,(w_it->p).numOfAtomParaString());
 				iTempName=tempNamesClean.length();
 				iTempVar=tempVarNums.length();
@@ -719,7 +720,7 @@ string LSYS::GetNewWord(size_t* t_i){
 					}
 					if(leftSideCon&&rightSideCon){
 						paraString pSy(w_it->l.GetTemplate()+w_it->p.GetTemplate()+w_it->r.GetTemplate());
-						paraString pNum(LeftnumIG+ignoreIt(subOldSentance.substr(0,t0+1)));
+						paraString pNum(Leftnum+subOldSentance.substr(0,t0+1));
 						// set variables names and values
 						vars=p1.GetVariablesWithValues(pSy , pNum);
 						// set in math parser
@@ -741,7 +742,7 @@ string LSYS::GetNewWord(size_t* t_i){
 							choTempNamesClean=tempNamesClean;
 							choTempVarNums=tempVarNums;
 							BestSuc=ParsSuccessor(w_it->s);
-							t_best_temp=t0+nIgnored+1;
+							t_best_temp=t0+1;
 							//						cout << BestSuc << endl;
 							//						cout << BestSuc << endl;
 						}
