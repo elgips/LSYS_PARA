@@ -58,13 +58,23 @@ int main(){
 		LSYS L("AXIOM: B[-1]A endAXIOM;"
 				"WORDS: A->AB[1];"
 //				"c[x,y]->g[@{x,y}x*y];"
-				"AB[x]->AB[@{x}x+1]A;"
-				"B[x]A->B[@{x}x+1]AC[@{x} x-1];"
+				"AB[x]->AB[@{x}x+1+t]A;"
+				"B[x]A->B[@{x}x+t]AC[@{x} x+dt];"
 				"C[x]:@{x} x>=1->Q[@{x} x^2];"
 				"Q[x]:@{x} x>3-> -LEAF-;"//A[z]B[x]B[y]->C[@{x,y,z}z*sin(y+x)];"
 //				"H<AB>C->Q;"
 				"endWORDS;"
-				"IGNORE: @=+-;:'{}*&אבג endIGNORE;");
+				"IGNORE: @=+-;:'{}*&אבג endIGNORE;"
+				"GPARAMETERS:"
+				"t0=0.1;"
+				"dt=0.001;"
+				"g=9.81;"
+				"r=1.45;"
+				"endGPARAMETERS;"
+				"GVARIABLES:"
+				"t=0:@{t,dt} t+dt;"
+				"AS=0.123:@{AS,t,r} AS+t*r;"
+				"endGVARIABLES;");
 //	size_t t_i;
 //	t_i=35;
 	L.propagate();
@@ -73,19 +83,22 @@ int main(){
 	cout<<L.current<< endl;
 	L.propagate();
 	cout<<L.current<< endl;
-	L.propagate();
+	unsigned int n=10;
+	L.simulate(n);
 	cout<<L.current<< endl;
-	L.propagate();
-	cout<<L.current<< endl;
-	L.propagate();
-	cout<<L.current<< endl;
-	L.propagate();
-	cout<<L.current<< endl;
-	L.propagate();
-	cout<<L.current<< endl;
-	L.propagate();
-	cout<<L.current<< endl;
-	L.propagate();
-	cout<<L.current<< endl;
+//	L.propagate();
+//	cout<<L.current<< endl;
+//	L.propagate();
+//	cout<<L.current<< endl;
+//	L.propagate();
+//	cout<<L.current<< endl;
+//	L.propagate();
+//	cout<<L.current<< endl;
+//	L.propagate();
+//	cout<<L.current<< endl;
+//	L.propagate();
+//	cout<<L.current<< endl;
+//	L.propagate();
+//	cout<<L.current<< endl;
 	return 0;
 }

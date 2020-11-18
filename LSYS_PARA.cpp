@@ -552,8 +552,146 @@ LSYS::LSYS(string s){
 		}
 		ignore=Stword.substr(0,te);
 	}
+	/*PARAMETERS
+	 * only Parameter name and value (to be parsed in the expressions*/
+	ti=s.find("GPARAMETERS:");
+	if(ti==s.npos){
+		cout << "WARNING :THERE ARE NO GLOBAL PARAMETERS STRINGS DEFINED" << endl;
+	}else{
+		Stword=s.substr(ti+12);
+		te=Stword.find("endGPARAMETERS;");
+		if(te==Stword.npos){
+			cout << "system's GLOBAL PARAMETERS end-statement is missing" << endl;
+			terminate();
+		}
+		ParseGP(Stword.substr(0,te));
+	}
+	/*GLOBAL VARIABLES
+	 * variable name, value, and propagation rule {A WORD structure for each variable} {e.g. - time, physio time. more important - get values as inputs, so the propagation rule is to stay the same unless input is given*/
+	ti=s.find("GVARIABLES:");
+	if(ti==s.npos){
+		cout << "WARNING :THERE ARE NO GLOBAL VARIABLES STRINGS DEFINED" << endl;
+	}else{
+		Stword=s.substr(ti+11);
+		te=Stword.find("endGVARIABLES;");
+		if(te==Stword.npos){
+			cout << "system's GLOBAL VARIABLES end-statement is missing" << endl;
+			terminate();
+		}
+	}
+	ParseGV(Stword.substr(0,te));
+}
+void LSYS::ParseGP(string s){
+	this->GlobalParameters.clear();
+	string val,name,temp;
+	size_t eq,semicol;
+	temp=s;
+	semicol=temp.find(";");
+	eq=temp.find("=");
+
+	while(semicol<temp.length()-1){
+		variable v(temp.substr(0,eq),stod(temp.substr(eq+1,semicol)));
+		GlobalParameters.push_back(v);
+		temp=temp.substr(semicol+1);
+		semicol=temp.find(";");
+		if(semicol==temp.npos){
+			cout << "BAD SYNTEX ';' missing" << endl;
+			terminate();
+		}
+		eq=temp.find("=");
+		if(eq==temp.npos){
+			cout << "BAD SYNTEX '=' missing" << endl;
+			terminate();
+		}
+	}
+	if(semicol==temp.npos){
+		cout << "BAD SYNTEX ';' missing" << endl;
+		terminate();
+	}
+	if(eq==temp.npos){
+		cout << "BAD SYNTEX '=' missing" << endl;
+		terminate();
+	}
+	variable v(temp.substr(0,eq),stod(temp.substr(eq+1,semicol)));
+	GlobalParameters.push_back(v);
 }
 
+void LSYS::ParseGV(string s){
+	/*A=A0#F[...];*/
+	this->GlobalVaribles.clear();
+	this->GlobalVariblesPropagators.clear();
+	string equa,name,temp;
+	size_t eq,tp,semicol;
+	temp=s;
+	semicol=temp.find(";");
+	eq=temp.find("=");
+	tp=temp.find(":");
+
+	while(semicol<temp.length()-1){
+		variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp)));
+		GlobalVaribles.push_back(v);
+		equa=temp.substr(0,semicol);
+		equa=equa.substr(tp+1);
+		expression e(equa);
+		GlobalVariblesPropagators.push_back(e);
+		temp=temp.substr(semicol+1);
+
+		semicol=temp.find(";");
+		if(semicol==temp.npos){
+			cout << "BAD SYNTEX ';' missing" << endl;
+			terminate();
+		}
+		eq=temp.find("=");
+		if(eq==temp.npos){
+			cout << "BAD SYNTEX '=' missing" << endl;
+			terminate();
+		}
+		tp=temp.find(":");
+		if(tp==temp.npos){
+			cout << "BAD SYNTEX ':' missing" << endl;
+			terminate();
+		}
+	}
+	if(semicol==temp.npos){
+		cout << "BAD SYNTEX ';' missing" << endl;
+		terminate();
+	}
+	if(eq==temp.npos){
+		cout << "BAD SYNTEX '=' missing" << endl;
+		terminate();
+	}
+	if(tp==temp.npos){
+		cout << "BAD SYNTEX ':' missing" << endl;
+		terminate();
+	}
+	variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp)));
+	GlobalVaribles.push_back(v);
+	equa=temp.substr(0,semicol);
+	equa=equa.substr(tp+1);
+	expression e(equa);
+	GlobalVariblesPropagators.push_back(e);
+}
+void LSYS::Gpropagate(){
+	SymTab.clear();
+	LoadGlob();
+	expression_e.register_symbol_table(SymTab);
+	vector<variable>::iterator v_it;
+	v_it=GlobalVaribles.begin();
+	for(vector<expression>::iterator e_it=GlobalVariblesPropagators.begin();e_it!=GlobalVariblesPropagators.end();e_it++){
+	parser_e.compile(e_it->GetExpression(),expression_e);
+	v_it->SetValue(expression_e.value());
+	v_it++;
+	}
+}
+
+void LSYS::LoadGlob(){
+	for(vector<variable>::iterator v_it=GlobalParameters.begin();v_it!=GlobalParameters.end();v_it++){
+		SymTab.add_variable(v_it->name,v_it->value);
+	}
+	for(vector<variable>::iterator v_it=GlobalVaribles.begin();v_it!=GlobalVaribles.end();v_it++){
+		SymTab.add_variable(v_it->name,v_it->value);
+	}
+}
 string LSYS::ignoreIt(string s){
 	for(unsigned int i=0;i<this->ignore.length();i++){
 		s.erase(remove(s.begin(), s.end(), this->ignore[i]), s.end());
@@ -577,8 +715,6 @@ string LSYS::GetPnumfromPtempRev(string LTemplate,size_t t){
 	Lnum=current.substr(t_num, t-t_num);
 	return Lnum;
 }
-
-
 string LSYS::ParsSuccessor(successor s){
 	expression_e.register_symbol_table(SymTab);
 	string SucNum="";
@@ -610,6 +746,8 @@ string LSYS::ParsSuccessor(successor s){
 	return SucNum;
 }
 int LSYS::propagate(){
+	//propargate global variables
+
 	/* CLEAN FROM IGNORE EXPRESSIONS*/
 	string newString="";
 	size_t t_i=0;
@@ -621,6 +759,13 @@ int LSYS::propagate(){
 	}
 	history.push_back(newString);
 	current=newString;
+	Gpropagate();
+	return 0;
+}
+int LSYS::simulate(unsigned int n){
+	for(unsigned int i=0;i!=n;i++){
+		propagate();
+	}
 	return 0;
 }
 /*remarks - to enable partial word recognition (like only B from ABC[] , *t_i is a index in the
@@ -726,6 +871,7 @@ string LSYS::GetNewWord(size_t* t_i){
 						// set in math parser
 						unitedTermsCon=1;
 						SymTab.clear();
+						LoadGlob();
 						for(v_it=vars.begin();v_it!=vars.end();v_it++){
 							SymTab.add_variable(v_it->name,v_it->value);
 						}

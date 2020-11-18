@@ -147,26 +147,36 @@ public:
 	 * C1=..;
 	 * C2=...;
 	 * C3=...;
-	 * dt=...;*/
+	 * dt=...;
+	 * endCONSTANTS
+	 * GLOBALVARIABLES:
+	 * A=F1(...) */
 	symbol_table_d 		SymTab;
 	expression_d 		expression_e;
 	parser_d			parser_e;
 
 	string 				axiom;
 	string 				current;
-	paraString			p;
+//	paraString			p;
 	string 				ignore;
 	vector	<word> 		words;
 	vector	<string>	history;
-	vector	<variable>	constants;
+	vector	<variable>	GlobalParameters;
+	vector	<variable>	GlobalVaribles;
+	vector	<expression>	GlobalVariblesPropagators;
 	LSYS(string s);
 	////	//	~LSYS();
 	string ignoreIt(string s);
 	////	bool leftCon(string oldword,size_t t,sideConLeft left);
 	////	bool rightCon(string oldword,size_t t,sideConRight right);
-	int propagate();
-	string GetNewWord(size_t* t_i);
-	string GetPnumfromPtempRev(string LTemplate,size_t t);
-	string ParsSuccessor(successor s);
+	int 	propagate();
+	int		simulate(unsigned int n);
+	string 	GetNewWord(size_t* t_i);
+	string 	GetPnumfromPtempRev(string LTemplate,size_t t);
+	string 	ParsSuccessor(successor s);
+	void	ParseGP(string s);
+	void	ParseGV(string s);
+	void 	Gpropagate();
+	void 	LoadGlob();
 };
 #endif /* LSYS_PARA_H_ */
