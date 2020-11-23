@@ -369,12 +369,60 @@ string	successor::GetTemplate(){
 	return Template;
 }
 /*End of successor:paraString definition*/
+/*SuccessorSpace*/
 
+successorsSpace::successorsSpace(){
+}
+
+successorsSpace::successorsSpace(string St){
+	size_t dol,tp;
+	string temp;
+	dol=St.find("$");
+	tp=St.find(":");
+	if((dol==St.npos)&&(tp==St.npos)){
+		s.push_back(St);
+		p.push_back(1.0);
+	}else{
+		while(!St.empty()){
+
+			if(dol!=St.npos){
+				successor sc(St.substr(0,tp));
+				s.push_back(sc);
+				temp=St.substr(0,dol);
+				temp=St.substr(tp);
+				p.push_back(stod(temp));
+				St=St.substr(dol+1);
+				dol=St.find("$");
+				tp=St.find(":");
+			}else{
+				successor sc(St.substr(0,tp));
+				s.push_back(sc);
+				temp=St.substr(tp);
+				p.push_back(stod(temp));
+				St="";
+			}
+		}
+	}
+}
+
+successor successorsSpace::RandomSuccessor(){
+	random_device rd;
+	mt19937 gen(rd());
+	vector<successor>::iterator Sc=this->s.begin();
+	discrete_distribution<> d(p.begin(),p.end()--);
+	int sucNum=d(gen);
+
+	for(int i=1;i<sucNum;i++)Sc++;
+
+	successor suc(Sc->GetTemplate());
+	return suc;
+
+}
 /*word definition */
-/*SCL<pred>SCR:@(var1,var2...)term1,@(var1,var2...)term2....,@(var1,var2...)termN->Successor:@(var1,var2...)sucVar1,@(var1,var2...)sucVar2,...,@(var1,var2...)sucVarM;*/
+/*L<P>R:@(var1,var2...)term1,@(var1,var2...)term2....,@(var1,var2...)termN->S1:P1$S2:P2;*/
 word::word(){
 	paraString L,P,R;
-	successor S;
+	successorsSpace S;
 	vector <expression> t;
 	this->l=L;
 	this->stWord="";
@@ -392,7 +440,7 @@ word::word(){
 word::word(string STWORD){
 	/*SCL<pred>SCR:@(var1,var2...)term1#@(var1,var2...)term2....#@(var1,var2...)termN->Successor:@(var1,var2...)sucVar1#@(var1,var2...)sucVar2#...#@(var1,var2...)sucVarM;*/
 	paraString L,P,R;
-	successor S;
+	successorsSpace S;
 	vector <expression> t;
 	this->l=L;
 	this->stWord=STWORD;
@@ -433,14 +481,14 @@ word::word(string STWORD){
 		string tempTerms=temp_s.substr(t_t+1);
 		ParseTerms(tempTerms);
 	}
-	//successor
+	//successorSpace
 	temp_s=STWORD.substr(t_p+2);
 	t_t=temp_s.find(":");
 	if(t_t==temp_s.npos){
-		successor temp(temp_s);
+		successorsSpace temp(temp_s);
 		s=temp;
 	}else{
-		successor temp(temp_s.substr(0,t_t-1));
+		successorsSpace temp(temp_s.substr(0,t_t-1));
 		s=temp;
 	}
 
@@ -887,7 +935,7 @@ string LSYS::GetNewWord(size_t* t_i){
 							newWordFoundFlag=true;
 							choTempNamesClean=tempNamesClean;
 							choTempVarNums=tempVarNums;
-							BestSuc=ParsSuccessor(w_it->s);
+							BestSuc=ParsSuccessor(w_it->s.RandomSuccessor());
 							t_best_temp=t0+1;
 							//						cout << BestSuc << endl;
 							//						cout << BestSuc << endl;
