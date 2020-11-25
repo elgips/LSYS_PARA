@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <string.h>
 #include <cstdio>
-#include <random>
 #include "exprtk.hpp"
 
 using namespace std;
@@ -112,15 +111,6 @@ public:
 	//	successor(string tmplt,vector	<expression> SucVars,vector <variable> Variables);
 
 };
-
-class successorsSpace{
-public:
-	vector	<double>	p;// vector of probabilities for each successor
-	vector	<successor>	s; // vecto of all possible successors
-	successorsSpace();
-	successorsSpace(string S);
-	successor RandomSuccessor();
-};
 typedef paraString predecessor;/*a Parastring - a substring at the previous step*/
 typedef predecessor sideConLeft;/*a string which is a left side condition for a certain evolution*/
 typedef predecessor sideConRight;/*a string which is a right side condition for a certain evolution*/
@@ -129,7 +119,7 @@ public:
 	string stWord;
 	/*SCL<pred>SCR:@(var1,var2...)term1#@(var1,var2...)term2....#@(var1,var2...)termN->Successor:@(var1,var2...)sucVar1#@(var1,var2...)sucVar2#...#@(var1,var2...)sucVarM;*/
 	predecessor				p;
-	successorsSpace			s;
+	successor				s;
 	sideConLeft				l;
 	sideConRight			r;
 	vector	<expression>	t;
