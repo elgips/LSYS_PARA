@@ -12,7 +12,7 @@ size_t findNth(string s1,string s2,unsigned int i){
 		firstLoc=Temp.find(s2);
 		if(firstLoc==Temp.npos){
 			invalid_argument("n exceed the string number of substring occurrences");
-			return -1;
+			return s1.npos;
 		}else{
 			Temp=Temp.substr(firstLoc+1);
 			nthLoc+=firstLoc+1;
@@ -676,8 +676,19 @@ void LSYS::ParseGV(string s){
 	tp=temp.find(":");
 
 	while(semicol<temp.length()-1){
-		variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp)));
-		GlobalVaribles.push_back(v);
+		try{
+			variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp-eq-1)));
+			GlobalVaribles.push_back(v);
+		}
+		catch(const std::invalid_argument& ia)
+		{
+			SymTab.clear();
+			LoadGlob();
+			expression_e.register_symbol_table(SymTab);
+			parser_e.compile(temp.substr(eq+1,tp-eq-1),expression_e);
+			variable v(temp.substr(0,eq),expression_e.value());
+			GlobalVaribles.push_back(v);
+		}
 		equa=temp.substr(0,semicol);
 		equa=equa.substr(tp+1);
 		expression e(equa);
@@ -712,8 +723,20 @@ void LSYS::ParseGV(string s){
 		cout << "BAD SYNTEX ':' missing" << endl;
 		terminate();
 	}
-	variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp)));
-	GlobalVaribles.push_back(v);
+	try
+	{
+		variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp-eq-1)));
+		GlobalVaribles.push_back(v);
+	}
+	catch(const std::invalid_argument& ia)
+	{
+		SymTab.clear();
+		LoadGlob();
+		expression_e.register_symbol_table(SymTab);
+		parser_e.compile(temp.substr(eq+1,tp),expression_e);
+		variable v(temp.substr(0,eq),expression_e.value());
+		GlobalVaribles.push_back(v);
+	}
 	equa=temp.substr(0,semicol);
 	equa=equa.substr(tp+1);
 	expression e(equa);
@@ -726,9 +749,9 @@ void LSYS::Gpropagate(){
 	vector<variable>::iterator v_it;
 	v_it=GlobalVaribles.begin();
 	for(vector<expression>::iterator e_it=GlobalVariblesPropagators.begin();e_it!=GlobalVariblesPropagators.end();e_it++){
-	parser_e.compile(e_it->GetExpression(),expression_e);
-	v_it->SetValue(expression_e.value());
-	v_it++;
+		parser_e.compile(e_it->GetExpression(),expression_e);
+		v_it->SetValue(expression_e.value());
+		v_it++;
 	}
 }
 
@@ -829,7 +852,7 @@ string LSYS::GetNewWord(size_t* t_i){
 	string	tempVarNums="",choTempVarNums="",tempNamesClean="",choTempNamesClean="",leftResidual,rightResidual,tempTemplate;
 	string subOldSentanceIG=ignoreIt(subOldSentance);
 	paraString p1;//(subOldSentanceIG);
-	int nIgnored=subOldSentance.length()-subOldSentanceIG.length();
+	//	int nIgnored=subOldSentance.length()-subOldSentanceIG.length();
 	string p1CleanNames;//=p1.GetNamesClean();
 	string p1VarNums;//=p1.GetNumOfVars();
 	string BestSuc;
@@ -844,7 +867,7 @@ string LSYS::GetNewWord(size_t* t_i){
 	vector	<term>::		iterator	t_it;
 	vector	<variable>::	iterator	v_it;
 	vector	<variable> 					vars;
-	size_t iVar,iNames,iTempName,iTempVar,t0,t0IG,t2,t_best_temp,tpl;
+	size_t iVar,iNames,iTempName,iTempVar,t0,t2,t_best_temp,tpl;//t0IG
 	/* for loop all the possible words fit (maximal predecessor,keeping all terms) -so we got a simple function -
 	 * gets the current maximal word length(parametric, no numbers), checking if the current predecessor fits the string head, after words calls for terms checking function, than
 	 * if word length is maximal, then parsing, and holding the new one as the best, untill scanning all words, across the oldSubString. returning the current location in the old string, and the new parsed word for the new string
@@ -857,7 +880,7 @@ string LSYS::GetNewWord(size_t* t_i){
 		last=tempTemplate.back();
 		lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
 		tpl=findNth(subOldSentanceIG, last, lastCount);
-		if(tpl>0){
+		if(tpl!=subOldSentanceIG.npos){
 			p1.resetParaString(subOldSentanceIG.substr(0,tpl+1));
 			p1CleanNames=p1.GetNamesClean();
 			p1VarNums=p1.GetNumOfVars();
@@ -868,7 +891,7 @@ string LSYS::GetNewWord(size_t* t_i){
 				tempTemplate=w_it->p.GetTemplate();
 				last=tempTemplate.back();
 				lastCount=count(tempTemplate.begin(),tempTemplate.end(),last.back());
-				t0IG=findNth(subOldSentanceIG, last, lastCount);
+				//				t0IG=findNth(subOldSentanceIG, last, lastCount);
 				t0=findNth(subOldSentance, last, lastCount);
 				//			paraString Ptemp=p1.SubParaString(0,(w_it->p).numOfAtomParaString());
 				iTempName=tempNamesClean.length();
