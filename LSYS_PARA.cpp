@@ -386,10 +386,11 @@ successorsSpace::successorsSpace(string St){
 		while(!St.empty()){
 
 			if(dol!=St.npos){
-				successor sc(St.substr(0,tp));
+				temp=St.substr(0,tp);
+				successor sc(temp);
 				s.push_back(sc);
 				temp=St.substr(0,dol);
-				temp=St.substr(tp);
+				temp=temp.substr(tp+1);
 				p.push_back(stod(temp));
 				St=St.substr(dol+1);
 				dol=St.find("$");
@@ -397,7 +398,7 @@ successorsSpace::successorsSpace(string St){
 			}else{
 				successor sc(St.substr(0,tp));
 				s.push_back(sc);
-				temp=St.substr(tp);
+				temp=St.substr(tp+1);
 				p.push_back(stod(temp));
 				St="";
 			}
@@ -412,7 +413,7 @@ successor successorsSpace::RandomSuccessor(){
 	discrete_distribution<> d(p.begin(),p.end()--);
 	int sucNum=d(gen);
 
-	for(int i=1;i<sucNum;i++)Sc++;
+	for(int i=1;i<sucNum+1;i++)Sc++;
 
 	successor suc(Sc->GetTemplate());
 	return suc;
@@ -484,13 +485,13 @@ word::word(string STWORD){
 	//successorSpace
 	temp_s=STWORD.substr(t_p+2);
 	t_t=temp_s.find(":");
-	if(t_t==temp_s.npos){
-		successorsSpace temp(temp_s);
-		s=temp;
-	}else{
-		successorsSpace temp(temp_s.substr(0,t_t-1));
-		s=temp;
-	}
+//	if(t_t==temp_s.npos){
+		successorsSpace temp_ss(temp_s);
+		s=temp_ss;
+//	}else{
+//		successorsSpace temp(temp_s.substr(0,t_t-1));
+//		s=temp;
+//	}
 
 }
 void word::ParseTerms(string S){
@@ -743,13 +744,17 @@ void LSYS::ParseGV(string s){
 	GlobalVariblesPropagators.push_back(e);
 }
 void LSYS::Gpropagate(){
+	string temp;
+	expression_e.release();
 	SymTab.clear();
 	LoadGlob();
+
 	expression_e.register_symbol_table(SymTab);
 	vector<variable>::iterator v_it;
 	v_it=GlobalVaribles.begin();
 	for(vector<expression>::iterator e_it=GlobalVariblesPropagators.begin();e_it!=GlobalVariblesPropagators.end();e_it++){
-		parser_e.compile(e_it->GetExpression(),expression_e);
+		temp=e_it->GetExpression();
+		parser_e.compile(temp,expression_e);
 		v_it->SetValue(expression_e.value());
 		v_it++;
 	}
@@ -830,7 +835,7 @@ int LSYS::propagate(){
 	}
 	history.push_back(newString);
 	current=newString;
-	Gpropagate();
+	Gpropagate();// here is the bug
 	return 0;
 }
 int LSYS::simulate(unsigned int n){
