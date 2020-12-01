@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <string.h>
 #include <cstdio>
+#include <random>
+#include<fstream>
+#include<sstream>
 #include "exprtk.hpp"
 
 using namespace std;
@@ -39,29 +42,16 @@ public:
 
 class expression{
 protected:
-
 	vector	<variable>	variables;
 	string				equation;
-	//	symbol_table_d SymTab;
-	//	expression_d expression_e;
-
-	//
 public:
-	//	parser_d 						parser_e;
-	//						expression(expression e);
 	expression	();
 	expression 	(string s);
 	expression	(vector <variable> Variables,string tmplt);
 	expression(vector <string> Names,vector <double> values,string tmplt);
-	//	void				ParseTemplate();
 	void 				SetVariables(vector <variable> Variables);
 	void 				SetVariables(vector <string> Names,vector <double> values);
 	string 				GetExpression();
-	//	bool 				boolevalVal();
-	//	double				evalVal();
-	//	bool	CheckVariablesFormat(vector <variable> Variables);
-	//
-	//	void 	SetTemplet	(string tmplt);
 
 };
 typedef expression	term;
@@ -79,7 +69,6 @@ protected:
 public:
 	paraString();
 	paraString(string tmplt);
-	//	paraString(string tmplt,vector <variable> Variables);
 	int					numOfAtomParaString();// done, CHECKED
 	string 				GetTemplate		();
 	string				GetNumOfVars	();
@@ -107,9 +96,16 @@ public:
 	string					GetExpNums();
 	string					GetTemplate();
 
-	//	successor(string tmplt,vector	<expression> SucVars);
-	//	successor(string tmplt,vector	<expression> SucVars,vector <variable> Variables);
 
+};
+
+class successorsSpace{
+public:
+	vector	<double>	p;// vector of probabilities for each successor
+	vector	<successor>	s; // vecto of all possible successors
+	successorsSpace();
+	successorsSpace(string S);
+	successor RandomSuccessor();
 };
 typedef paraString predecessor;/*a Parastring - a substring at the previous step*/
 typedef predecessor sideConLeft;/*a string which is a left side condition for a certain evolution*/
@@ -119,14 +115,12 @@ public:
 	string stWord;
 	/*SCL<pred>SCR:@(var1,var2...)term1#@(var1,var2...)term2....#@(var1,var2...)termN->Successor:@(var1,var2...)sucVar1#@(var1,var2...)sucVar2#...#@(var1,var2...)sucVarM;*/
 	predecessor				p;
-	successor				s;
+	successorsSpace			s;
 	sideConLeft				l;
 	sideConRight			r;
 	vector	<expression>	t;
 	word();
 	word(string StWord);
-	//	word(sideConLeft L,successor S,predecessor P,sideConRight R);
-	////
 	void ParseTerms(string S);
 };
 class LSYS{
@@ -157,7 +151,6 @@ public:
 
 	string 				axiom;
 	string 				current;
-//	paraString			p;
 	string 				ignore;
 	vector	<word> 		words;
 	vector	<string>	history;
@@ -165,10 +158,7 @@ public:
 	vector	<variable>	GlobalVaribles;
 	vector	<expression>	GlobalVariblesPropagators;
 	LSYS(string s);
-	////	//	~LSYS();
 	string ignoreIt(string s);
-	////	bool leftCon(string oldword,size_t t,sideConLeft left);
-	////	bool rightCon(string oldword,size_t t,sideConRight right);
 	int 	propagate();
 	int		simulate(unsigned int n);
 	string 	GetNewWord(size_t* t_i);
@@ -179,4 +169,6 @@ public:
 	void 	Gpropagate();
 	void 	LoadGlob();
 };
+
+string file2string(string dir);
 #endif /* LSYS_PARA_H_ */

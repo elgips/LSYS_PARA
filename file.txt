@@ -1,0 +1,19 @@
+AXIOM: F endAXIOM;
+			WORDS: A->AB[1];
+			AB[x]->AB[@{x,t}x+1+t]A;
+			F->FF:0.99$GF:0.01;
+			B[x]A->B[@{x,t}x+t]AC[@{x} x+dt];
+			C[x]:@{x} x>=1->Q[@{x} x^2];
+			Q[x]:@{x} x>3-> -LEAF-;//A[z]B[x]B[y]->C[@{x,y,z}z*sin(y+x)];
+			endWORDS;
+			IGNORE: @=+-;:'{}*&אבג endIGNORE;
+			GPARAMETERS:
+			t0=0.5;
+			dt=0.3;
+			g=9.81;
+			r=1.45;
+			endGPARAMETERS;
+			GVARIABLES:
+			t=t0:@{t,dt} t+dt;
+			AS=0.123:@{AS,t,r} AS+t*r;
+			endGVARIABLES;
