@@ -318,7 +318,8 @@ successor::successor(string tmplt){
 			if(t2==SubTemp.npos){
 				namesClean+="_";
 				namesClean+=SubTemp;
-				t1=Template.npos;
+				numOfExp+="_0";
+				t1=t1+SubTemp.length();
 			}else{
 				namesClean+="_";
 				namesClean+=SubTemp.substr(0,t2);
@@ -340,12 +341,12 @@ successor::successor(string tmplt){
 					expression p_temp(VarName);
 					this->expressions.push_back(p_temp);
 				}
+				numOfExp+="_";
+				numOfExp+=to_string(varCounter);
+				varCounter=0;
+				t1=t1+t2+t3;
+				if(t1<Template.length())SubTemp=Template.substr(t1);
 			}
-			numOfExp+="_";
-			numOfExp+=to_string(varCounter);
-			varCounter=0;
-			t1=t1+t2+t3;
-			if(t1<Template.length())SubTemp=Template.substr(t1);
 		}
 		if(numOfExp.empty())numOfExp="0";}
 }
@@ -913,6 +914,7 @@ string LSYS::GetNewWord(size_t* t_i){
 						vars=p1.GetVariablesWithValues(pSy , pNum);
 						// set in math parser
 						unitedTermsCon=1;
+						expression_e.release();
 						SymTab.clear();
 						LoadGlob();
 						for(v_it=vars.begin();v_it!=vars.end();v_it++){

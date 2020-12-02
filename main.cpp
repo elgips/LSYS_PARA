@@ -9,7 +9,7 @@
 
 
 int main(){
-	string L_st=file2string("../LSYS_EXPRTK_STO/file.txt");
+	string L_st=file2string("../LSYS_EXPRTK_STO/apex.txt");
 	LSYS L(L_st);
 	L.propagate();
 	cout<<L.current<< endl;
@@ -17,7 +17,7 @@ int main(){
 	cout<<L.current<< endl;
 	L.propagate();
 	cout<<L.current<< endl;
-	unsigned int n=10;
+	unsigned int n=50;
 	L.simulate(n);
 	cout<<L.current<< endl;
 	return 0;
