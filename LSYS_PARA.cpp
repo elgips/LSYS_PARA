@@ -78,6 +78,7 @@ expression::expression(string s){
 	if(t_v!=s.npos){
 		if(t_v!=0){
 			invalid_argument("Bad expression syntax");
+			terminate();
 		}else{
 			if(s.find("@{")==s.npos){
 				variable v(s.substr(t_v+1,s.find(" ")));
@@ -87,6 +88,7 @@ expression::expression(string s){
 				t_s=s.find("}");
 				if(t_s==s.npos){
 					invalid_argument("Bad expression syntax");
+					terminate();
 				}
 				equation=s.substr(t_s+1);
 				string temp=s.substr(t_v+2,t_s-t_v-2);
@@ -106,7 +108,10 @@ expression::expression(string s){
 				}
 			}
 		}
+	}else{
+		equation=s;
 	}
+
 
 }
 string expression::GetExpression(){
@@ -418,7 +423,7 @@ successor successorsSpace::RandomSuccessor(){
 
 }
 /*word definition */
-/*L<P>R:@(var1,var2...)term1,@(var1,var2...)term2....,@(var1,var2...)termN->S1:P1$S2:P2;*/
+/*L<P>R:@{var1,var2...}term1#@{var1,var2...}term2....#@(var1,var2...)termN->S1:P1$S2:P2;*/
 word::word(){
 	paraString L,P,R;
 	successorsSpace S;
@@ -444,6 +449,7 @@ word::word(string STWORD){
 	t_p=STWORD.find("->");
 	temp_s=STWORD.substr(0, t_p);
 	t_t=temp_s.find(":");
+	temp_s=temp_s.substr(0, t_t);
 	// side term left
 	t_l=temp_s.find("<");
 	if(t_l!=temp_s.npos){
@@ -470,7 +476,7 @@ word::word(string STWORD){
 	//terms
 
 	if(t_t!=temp_s.npos){
-		string tempTerms=temp_s.substr(t_t+1);
+		string tempTerms=STWORD.substr(t_t+1,t_p-t_t-1);
 		ParseTerms(tempTerms);
 	}
 	//successorSpace
