@@ -9,8 +9,10 @@
 
 
 int main(){
-	string L_st=file2string("../LSYS_EXPRTK_STO/apex.txt");
+	string L_st=file2string("../LSYS_EXPRTK_STO/example1_4_1.txt");
 	LSYS L(L_st);
+	L.propagate();
+	cout<<L.current<< endl;
 	L.propagate();
 	cout<<L.current<< endl;
 	L.propagate();

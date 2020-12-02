@@ -657,10 +657,11 @@ void LSYS::ParseGP(string s){
 }
 
 void LSYS::ParseGV(string s){
-	/*A=A0#F[...];*/
+	/*A=A0:F[...];*/
 	this->GlobalVaribles.clear();
 	this->GlobalVariblesPropagators.clear();
-	string equa,name,temp;
+	string equa,name,temp,init;
+	double val;
 	size_t eq,tp,semicol;
 	temp=s;
 	semicol=temp.find(";");
@@ -674,11 +675,14 @@ void LSYS::ParseGV(string s){
 		}
 		catch(const std::invalid_argument& ia)
 		{
+			expression_e.release();
 			SymTab.clear();
 			LoadGlob();
 			expression_e.register_symbol_table(SymTab);
-			parser_e.compile(temp.substr(eq+1,tp-eq-1),expression_e);
-			variable v(temp.substr(0,eq),expression_e.value());
+			init=temp.substr(eq+1,tp-eq-1);
+			parser_e.compile(init,expression_e);
+			val=expression_e.value();
+			variable v(temp.substr(0,eq),val);
 			GlobalVaribles.push_back(v);
 		}
 		equa=temp.substr(0,semicol);
@@ -722,11 +726,14 @@ void LSYS::ParseGV(string s){
 	}
 	catch(const std::invalid_argument& ia)
 	{
-		SymTab.clear();
+//		expression_e.release();
+//		SymTab.clear();
 		LoadGlob();
 		expression_e.register_symbol_table(SymTab);
-		parser_e.compile(temp.substr(eq+1,tp),expression_e);
-		variable v(temp.substr(0,eq),expression_e.value());
+		init=temp.substr(eq+1,tp-eq-1);
+		parser_e.compile(init,expression_e);
+		val=expression_e.value();
+		variable v(temp.substr(0,eq),val);
 		GlobalVaribles.push_back(v);
 	}
 	equa=temp.substr(0,semicol);
