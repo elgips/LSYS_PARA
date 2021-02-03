@@ -5,6 +5,89 @@
  *      Author: gips
  */
 #include "LSYS_PARA.h"
+size_t CloseLoc(string _s,char _c,size_t _oL){
+	/*the input starts after the opening bracket*/
+	size_t cL,tO,tC;
+	size_t tP=_s.find(',',_oL+1);
+	int counter=0;
+	switch (_c){
+	case '(':
+		tO=_s.find('(',_oL+1);
+		tC=_s.find(')',_oL+1);
+		if((tC!=_s.npos)&&(tC<tO))
+			return tC;
+		else{
+			while((tC!=_s.npos)&&((tC>tO)||(counter>0))){
+				if(tO<tC){
+					counter++;
+					tO=_s.find('(',tO+1);
+				}else if(counter>0){
+					tC=_s.find(')',tC+1);
+					counter--;
+				}
+			}
+			return tC;
+		}
+		break;
+	case ')':
+		tO=_s.substr(0,_oL).rfind('(');
+		tC=_s.substr(0,_oL).rfind(')');
+		if((tC!=_s.npos)&&(tC<tO))
+			return tO;
+		else{
+			while((tC!=_s.npos)&&((tC>tO)||(counter>0))){
+				if(tO<tC){
+					counter++;
+					tC=_s.substr(0,tC).rfind(')');
+				}else if(counter>0){
+					tO=_s.substr(0,tO).rfind('(');
+					counter--;
+				}
+			}
+			return tO;
+		}
+		break;
+	case '{':
+		tO=_s.find('{',_oL+1);
+		tC=_s.find('}',_oL+1);
+		if((tC!=_s.npos)&&(tC<tO))
+			return tC;
+		else{
+			while((tC!=_s.npos)&&((tC>tO)||(counter>0))){
+				if(tO<tC){
+					counter++;
+					tO=_s.find('{',tO+1);
+				}else if(counter>0){
+					tC=_s.find('}',tC+1);
+					counter--;
+				}
+			}
+			return tC;
+		}
+		break;
+	case ',':
+		if(tP==_s.npos)
+			return tP;
+		tO=_s.find('{',_oL);
+		if(tO==_s.npos)
+			return tP;
+		tC=_s.find('}',_oL);
+		if(tP>tC)
+			return tP;
+		else
+			return _s.find(',',tC+1);
+		break;
+	default:
+		cout << "input bracket type invalid" << endl;
+		terminate();
+		break;
+	}
+	if(cL!=0){
+		cout << "invalid string - number of opening and closing brackets is not even" << endl;
+		terminate();
+	}
+	return cL;
+}
 string file2string(string dir){
 	ifstream file(dir);
 	string input,in_fu;
@@ -134,12 +217,12 @@ void paraString::ParseTemplate(){
 	size_t varCounter,i;
 	size_t t1=0,t2,t3;
 	int p_num=1;
-	if(Template.find("[")==Template.npos){
+	if(Template.find("(")==Template.npos){
 		numOfVars="_0";
 		namesClean="_"+Template;
 	}else{
 		while(t1<Template.length()){
-			t2=SubTemp.find("[");
+			t2=SubTemp.find("(");
 			if(t2==SubTemp.npos){
 				namesClean+="_";
 				namesClean+=SubTemp;
@@ -147,10 +230,10 @@ void paraString::ParseTemplate(){
 			}else{
 				namesClean+="_";
 				namesClean+=SubTemp.substr(0,t2);
-				t3=SubTemp.find("]");
+				t3=CloseLoc(SubTemp,'(',t2);
 				varCounter=0;
-				if (t2+1<t3){
-					varsTemp=SubTemp.substr(t2+1,t3-t2-1);
+				if (t3>1){
+					varsTemp=SubTemp.substr(t2+1,t3-2);
 					varCounter=1;
 					i=varsTemp.find(",");
 					while(i!=varsTemp.npos){
@@ -188,7 +271,7 @@ void paraString::ParseTemplate(){
 			numOfVars+="_";
 			numOfVars+=to_string(varCounter);
 			varCounter=0;
-			if(t1!=Template.npos)t1=t1+t3+1;
+			if(t1!=Template.npos)t1=t1+t2+t3+1;
 			if(t1<Template.length())SubTemp=Template.substr(t1);
 		}
 		if(numOfVars.empty())numOfVars="0";}
@@ -314,12 +397,12 @@ successor::successor(string tmplt){
 	string tempName,SubTemp=Template,varsTemp,VarName;
 	size_t varCounter,i;
 	size_t t1=0,t2,t3;
-	if(Template.find("[")==Template.npos){
+	if(Template.find("(")==Template.npos){
 		numOfExp="_0";
 		namesClean="_"+Template;
 	}else{
 		while(t1<Template.length()){
-			t2=SubTemp.find("[");
+			t2=SubTemp.find("(");
 			if(t2==SubTemp.npos){
 				namesClean+="_";
 				namesClean+=SubTemp;
@@ -328,19 +411,19 @@ successor::successor(string tmplt){
 			}else{
 				namesClean+="_";
 				namesClean+=SubTemp.substr(0,t2);
-				t3=SubTemp.find("]");
+				t3=CloseLoc(SubTemp,'(',t2);
 				varCounter=0;
 				if (t2+1<t3){
 					varsTemp=SubTemp.substr(t2+1,t3-t2-1);
 					varCounter=1;
-					i=varsTemp.find("#");
+					i=CloseLoc(varsTemp, ',',0);
 					while(i!=varsTemp.npos){
 						varCounter++;
 						VarName=varsTemp.substr(0,i);
 						expression p_temp(VarName);
 						this->expressions.push_back(p_temp);
 						varsTemp=varsTemp.substr(i+1);
-						i=varsTemp.find("#");
+						i=CloseLoc(varsTemp, ',',0);
 					}
 					VarName=varsTemp;
 					expression p_temp(VarName);
@@ -349,7 +432,8 @@ successor::successor(string tmplt){
 				numOfExp+="_";
 				numOfExp+=to_string(varCounter);
 				varCounter=0;
-				t1=t1+t2+t3;
+//				t1=t1+t2+t3;
+				t1=t1+t3+1;
 				if(t1<Template.length())SubTemp=Template.substr(t1);
 			}
 		}
@@ -380,14 +464,18 @@ successorsSpace::successorsSpace(){
 successorsSpace::successorsSpace(string St){
 	size_t dol,tp;
 	string temp;
-	dol=St.find("$");
 	tp=St.find(":");
-	if((dol==St.npos)&&(tp==St.npos)){
+	//	dol=tp+St.substr(tp).find(",");
+
+
+	if(tp==St.npos){
 		s.push_back(St);
 		p.push_back(1.0);
 	}else{
+		if(St.substr(tp).find(",")!=St.npos)
+			dol=tp+St.substr(tp).find(",");else
+				dol=St.npos;
 		while(!St.empty()){
-
 			if(dol!=St.npos){
 				temp=St.substr(0,tp);
 				successor sc(temp);
@@ -396,8 +484,10 @@ successorsSpace::successorsSpace(string St){
 				temp=temp.substr(tp+1);
 				p.push_back(stod(temp));
 				St=St.substr(dol+1);
-				dol=St.find("$");
 				tp=St.find(":");
+				if(St.substr(tp).find(",")!=St.npos)
+					dol=tp+St.substr(tp).find(",");else
+						dol=St.npos;
 			}else{
 				successor sc(St.substr(0,tp));
 				s.push_back(sc);
@@ -481,7 +571,7 @@ word::word(string STWORD){
 	}
 	//successorSpace
 	temp_s=STWORD.substr(t_p+2);
-	t_t=temp_s.find(":");
+	//	t_t=temp_s.find(":");
 	successorsSpace temp_ss(temp_s);
 	s=temp_ss;
 
@@ -628,32 +718,35 @@ void LSYS::ParseGP(string s){
 	temp=s;
 	semicol=temp.find(";");
 	eq=temp.find("=");
-
-	while(semicol<temp.length()-1){
-		variable v(temp.substr(0,eq),stod(temp.substr(eq+1,semicol)));
-		GlobalParameters.push_back(v);
-		temp=temp.substr(semicol+1);
-		semicol=temp.find(";");
+	if(!s.empty()){
+		while(semicol<temp.length()-1){
+//			name=temp.substr(0,eq);
+//			val=temp.substr(eq+1,semicol);
+			variable v(temp.substr(0,eq),stod(temp.substr(eq+1,semicol)));
+			GlobalParameters.push_back(v);
+			temp=temp.substr(semicol+1);
+			semicol=temp.find(";");
+			if(semicol==temp.npos){
+				cout << "BAD SYNTEX ';' missing" << endl;
+				terminate();
+			}
+			eq=temp.find("=");
+			if(eq==temp.npos){
+				cout << "BAD SYNTEX '=' missing" << endl;
+				terminate();
+			}
+		}
 		if(semicol==temp.npos){
 			cout << "BAD SYNTEX ';' missing" << endl;
 			terminate();
 		}
-		eq=temp.find("=");
 		if(eq==temp.npos){
 			cout << "BAD SYNTEX '=' missing" << endl;
 			terminate();
 		}
+		variable v(temp.substr(0,eq),stod(temp.substr(eq+1,semicol)));
+		GlobalParameters.push_back(v);
 	}
-	if(semicol==temp.npos){
-		cout << "BAD SYNTEX ';' missing" << endl;
-		terminate();
-	}
-	if(eq==temp.npos){
-		cout << "BAD SYNTEX '=' missing" << endl;
-		terminate();
-	}
-	variable v(temp.substr(0,eq),stod(temp.substr(eq+1,semicol)));
-	GlobalParameters.push_back(v);
 }
 
 void LSYS::ParseGV(string s){
@@ -667,16 +760,67 @@ void LSYS::ParseGV(string s){
 	semicol=temp.find(";");
 	eq=temp.find("=");
 	tp=temp.find(":");
+	if(!s.empty()){
+		while(semicol<temp.length()-1){
+			try{
+				variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp-eq-1)));
+				GlobalVaribles.push_back(v);
+			}
+			catch(const std::invalid_argument& ia)
+			{
+				expression_e.release();
+				SymTab.clear();
+				LoadGlob();
+				expression_e.register_symbol_table(SymTab);
+				init=temp.substr(eq+1,tp-eq-1);
+				parser_e.compile(init,expression_e);
+				val=expression_e.value();
+				variable v(temp.substr(0,eq),val);
+				GlobalVaribles.push_back(v);
+			}
+			equa=temp.substr(0,semicol);
+			equa=equa.substr(tp+1);
+			expression e(equa);
+			GlobalVariblesPropagators.push_back(e);
+			temp=temp.substr(semicol+1);
 
-	while(semicol<temp.length()-1){
-		try{
+			semicol=temp.find(";");
+			if(semicol==temp.npos){
+				cout << "BAD SYNTEX ';' missing" << endl;
+				terminate();
+			}
+			eq=temp.find("=");
+			if(eq==temp.npos){
+				cout << "BAD SYNTEX '=' missing" << endl;
+				terminate();
+			}
+			tp=temp.find(":");
+			if(tp==temp.npos){
+				cout << "BAD SYNTEX ':' missing" << endl;
+				terminate();
+			}
+		}
+		if(semicol==temp.npos){
+			cout << "BAD SYNTEX ';' missing" << endl;
+			terminate();
+		}
+		if(eq==temp.npos){
+			cout << "BAD SYNTEX '=' missing" << endl;
+			terminate();
+		}
+		if(tp==temp.npos){
+			cout << "BAD SYNTEX ':' missing" << endl;
+			terminate();
+		}
+		try
+		{
 			variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp-eq-1)));
 			GlobalVaribles.push_back(v);
 		}
 		catch(const std::invalid_argument& ia)
 		{
-			expression_e.release();
-			SymTab.clear();
+			//		expression_e.release();
+			//		SymTab.clear();
 			LoadGlob();
 			expression_e.register_symbol_table(SymTab);
 			init=temp.substr(eq+1,tp-eq-1);
@@ -689,57 +833,7 @@ void LSYS::ParseGV(string s){
 		equa=equa.substr(tp+1);
 		expression e(equa);
 		GlobalVariblesPropagators.push_back(e);
-		temp=temp.substr(semicol+1);
-
-		semicol=temp.find(";");
-		if(semicol==temp.npos){
-			cout << "BAD SYNTEX ';' missing" << endl;
-			terminate();
-		}
-		eq=temp.find("=");
-		if(eq==temp.npos){
-			cout << "BAD SYNTEX '=' missing" << endl;
-			terminate();
-		}
-		tp=temp.find(":");
-		if(tp==temp.npos){
-			cout << "BAD SYNTEX ':' missing" << endl;
-			terminate();
-		}
 	}
-	if(semicol==temp.npos){
-		cout << "BAD SYNTEX ';' missing" << endl;
-		terminate();
-	}
-	if(eq==temp.npos){
-		cout << "BAD SYNTEX '=' missing" << endl;
-		terminate();
-	}
-	if(tp==temp.npos){
-		cout << "BAD SYNTEX ':' missing" << endl;
-		terminate();
-	}
-	try
-	{
-		variable v(temp.substr(0,eq),stod(temp.substr(eq+1,tp-eq-1)));
-		GlobalVaribles.push_back(v);
-	}
-	catch(const std::invalid_argument& ia)
-	{
-//		expression_e.release();
-//		SymTab.clear();
-		LoadGlob();
-		expression_e.register_symbol_table(SymTab);
-		init=temp.substr(eq+1,tp-eq-1);
-		parser_e.compile(init,expression_e);
-		val=expression_e.value();
-		variable v(temp.substr(0,eq),val);
-		GlobalVaribles.push_back(v);
-	}
-	equa=temp.substr(0,semicol);
-	equa=equa.substr(tp+1);
-	expression e(equa);
-	GlobalVariblesPropagators.push_back(e);
 }
 void LSYS::Gpropagate(){
 	string temp;
@@ -776,10 +870,12 @@ string LSYS::GetPnumfromPtempRev(string LTemplate,size_t t){
 	string Lnum="";
 	size_t Temp_t=LTemplate.length(),t_num=t,t_sym=Temp_t;
 	while((t_sym>0)&&(t_num>0)){
-		if(LTemplate[t_sym]==']'){
-			while(current[--t_num]!='[');
+		if(LTemplate[t_sym]==')'){
+//			while(current[--t_num]!='[');
+			t_num=CloseLoc(current, t_num,')');
+			t_sym=CloseLoc(LTemplate, t_sym,')');
 			//		t_num--;
-			while(LTemplate[--t_sym]!='[');
+//			while(LTemplate[--t_sym]!='[');
 			//		t_sym--;
 		}else{
 			t_sym--;
@@ -798,18 +894,19 @@ string LSYS::ParsSuccessor(successor s){
 	vector <expression>::iterator e_it;
 	e_it=SucExp.begin();
 	for(t=0;t<SucSym.length();t++){
-		if(SucSym[t]=='['){
-			SucNum+="[";
-			while(SucSym[t++]!=']'){
-				if(SucSym[t]=='#'){
+		if(SucSym[t]=='('){
+			size_t tL=t;
+			SucNum+="(";
+			while(t++!=CloseLoc(SucSym, '(',tL)){
+				if(t==CloseLoc(SucSym, ',',tL)){
 					parser_e.compile(e_it->GetExpression(),expression_e);
 					SucNum+=to_string(expression_e.value())+",";
 					e_it++;
 				}
-				if(SucSym[t]==']'){
-					if(SucSym[t-1]!='['){
+				if(t==CloseLoc(SucSym, '(',tL)){
+					if(SucSym[t-1]!='('){
 						parser_e.compile(e_it->GetExpression(),expression_e);
-						SucNum+=to_string(expression_e.value())+"]";
+						SucNum+=to_string(expression_e.value())+")";
 						e_it++;}
 				}
 			}

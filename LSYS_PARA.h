@@ -22,7 +22,7 @@ using namespace std;
 typedef exprtk::symbol_table<double> symbol_table_d;
 typedef exprtk::expression<double>     expression_d;
 typedef exprtk::parser<double>             parser_d;
-
+size_t CloseLoc(string _s,char _c,size_t _oL);
 size_t findNth(string s1,string s2,unsigned int i);
 class variable{
 public:
